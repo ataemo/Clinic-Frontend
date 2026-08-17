@@ -191,8 +191,8 @@ button{font-family:inherit;}
 
     <div class="ph-section">
       <div class="promo-card" onclick="showPage('book')">
-        <div class="ic"><i class="fa-solid fa-gift"></i></div>
-        <div><b>ໂປຣໂມຊັ່ນພິເສດປະຈຳເດືອນ</b><span>ຈອງນັດເພື່ອຮັບສ່ວນຫຼຸດ</span></div>
+        <div class="ic"><i class="fa-solid fa-gift" id="promoIcon"></i></div>
+        <div><b id="promoTitle">ໂປຣໂມຊັ່ນພິເສດປະຈຳເດືອນ</b><span id="promoSubtitle">ຈອງນັດເພື່ອຮັບສ່ວນຫຼຸດ</span></div>
       </div>
     </div>
 
@@ -372,12 +372,20 @@ function onStorefrontLoaded(data){
   STORE.services = data.services || [];
   STORE.categories = data.categories || [];
   applyBranding();
+  renderPromo();
   renderBanners(data.banners || []);
   renderMarquee();
   renderCategories();
   renderFeatured(data.featured || []);
   renderAllServices();
   populateBookServiceSelect();
+}
+
+function renderPromo(){
+  var s = STORE.settings;
+  document.getElementById('promoTitle').textContent = s.promo_title || 'ໂປຣໂມຊັ່ນພິເສດປະຈຳເດືອນ';
+  document.getElementById('promoSubtitle').textContent = s.promo_subtitle || 'ຈອງນັດເພື່ອຮັບສ່ວນຫຼຸດ';
+  document.getElementById('promoIcon').className = 'fa-solid ' + (s.promo_icon || 'fa-gift');
 }
 
 function applyBranding(){
@@ -417,8 +425,11 @@ function renderMarquee(){
 
 /* ===== CATEGORIES ===== */
 function renderCategories(){
-  var html = '<div class="cat-chip active" onclick="filterCat(\'all\',this)">ທັງໝົດ</div>' +
-    STORE.categories.map(function(c){ return '<div class="cat-chip" onclick="filterCat(\''+c+'\',this)">'+c+'</div>'; }).join('');
+  var icons = {};
+  try { icons = JSON.parse(STORE.settings.category_icons || '{}'); } catch(e){ icons = {}; }
+  function iconHtml(c){ return icons[c] ? '<i class="fa-solid '+icons[c]+'" style="margin-right:5px;"></i>' : ''; }
+  var html = '<div class="cat-chip active" onclick="filterCat(\'all\',this)"><i class="fa-solid fa-border-all" style="margin-right:5px;"></i>ທັງໝົດ</div>' +
+    STORE.categories.map(function(c){ return '<div class="cat-chip" onclick="filterCat(\''+c+'\',this)">'+iconHtml(c)+c+'</div>'; }).join('');
   document.getElementById('catScroll').innerHTML = html;
   document.getElementById('catScroll2').innerHTML = html.replace(/filterCat/g,'filterCat2');
 }
