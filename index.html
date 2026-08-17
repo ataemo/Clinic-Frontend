@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="lo">
 <head>
-<base target="_top">
 <meta charset="utf-8">
 <title>Clinic & Aesthetic Management System</title>
+<meta name="description" content="ຈອງນັດໝາຍອອນລາຍ ແລະ ຕິດຕາມຂໍ້ມູນສຸຂະພາບກັບຄລີນິກຄວາມງາມຂອງທ່ານ">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0f766e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -30,6 +32,12 @@ a{color:inherit;text-decoration:none;}
 button{font-family:inherit;}
 
 #shell{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:78px;box-shadow:0 0 40px rgba(0,0,0,.06);}
+
+/* ===== CONFIG / CONNECTION BANNER ===== */
+.cfg-banner{background:#fef3c7;color:#92400e;font-size:12px;padding:10px 16px;display:none;align-items:center;gap:8px;border-bottom:1px solid #fde68a;}
+.cfg-banner.show{display:flex;}
+.cfg-banner i{font-size:14px;flex-shrink:0;}
+.cfg-banner button{margin-left:auto;background:#92400e;color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;flex-shrink:0;}
 
 .ph-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30;}
 .ph-brand{display:flex;align-items:center;gap:10px;}
@@ -79,6 +87,7 @@ button{font-family:inherit;}
 .svc-card .cat{font-size:10px;color:var(--muted);}
 
 .empty-mini{text-align:center;color:var(--muted);font-size:12.5px;padding:20px 0;}
+.error-mini{text-align:center;color:var(--danger);font-size:12.5px;padding:20px 0;}
 .skel{background:linear-gradient(90deg,#eef1f3 25%,#e4e8eb 37%,#eef1f3 63%);background-size:400% 100%;animation:sk 1.4s ease infinite;border-radius:10px;}
 @keyframes sk{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
 
@@ -103,6 +112,7 @@ button{font-family:inherit;}
 .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);}
 .btn-sm{padding:8px 12px;font-size:12px;border-radius:10px;width:auto;}
 .btn-danger{background:var(--danger);color:#fff;}
+.btn:disabled{opacity:.6;cursor:not-allowed;}
 
 .pcard{background:var(--surface);border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid var(--border);}
 .pcard .row{display:flex;justify-content:space-between;align-items:center;}
@@ -146,6 +156,13 @@ button{font-family:inherit;}
 <body>
 
 <div id="shell">
+
+  <!-- ============ CORS / CONFIG WARNING BANNER ============ -->
+  <div class="cfg-banner" id="cfgBanner">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span id="cfgBannerText">ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ API URL - ກະລຸນາແກ້ໄຂຕົວແປ API_BASE_URL ໃນໄຟລ໌ນີ້</span>
+    <button onclick="bootStorefront()">ລອງໃໝ່</button>
+  </div>
 
   <!-- ============ HEADER ============ -->
   <div class="ph-header">
@@ -249,13 +266,106 @@ button{font-family:inherit;}
 </div>
 
 <script>
+/* =====================================================================
+ * ການຕັ້ງຄ່າ (CONFIG) — ແກ້ 2 ຄ່ານີ້ກ່ອນ deploy ຂຶ້ນ GitHub Pages
+ * ===================================================================== */
+
+// URL ຂອງ Google Apps Script Web App (ຈາກ Deploy > New deployment > Web app)
+// ຕ້ອງລົງທ້າຍດ້ວຍ /exec ແລະ ຕັ້ງຄ່າ "Who has access: Anyone"
+var API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxWrKs4LMPRMuEAhHOoBxfcEPCtb1QGvUkQc-OMquELd6IbK4BIG_qwM47admVvXu38/exec';
+
+// URL ຂອງໜ້າ Admin (ຫລັງບ້ານ) ຖ້າແຍກ deploy ໄປຢູ່ບ່ອນອື່ນ (ເຊັ່ນ GitHub Pages ອີກ repo ໜຶ່ງ)
+// ຖ້າຍັງບໍ່ມີ ໃຫ້ປ່ອຍວ່າງໄວ້ ລະບົບຈະສະແດງແຈ້ງເຕືອນແທນ
+var ADMIN_URL = '';
+
+/* =====================================================================
+ * API CLIENT — ຮັບຜິດຊອບການເອີ້ນ Google Apps Script ຜ່ານ fetch()
+ * ໃຊ້ POST + Content-Type: text/plain ເພື່ອຫຼີກລ່ຽງ CORS Preflight
+ * ===================================================================== */
+function gasCall(action, args) {
+  return fetch(API_BASE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ສຳຄັນ: ຫ້າມໃຊ້ application/json
+    body: JSON.stringify({ action: action, args: args || [], token: getToken() })
+  })
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' - ເຊື່ອມຕໍ່ Server ບໍ່ໄດ້');
+      return res.json();
+    })
+    .then(function (json) {
+      if (!json.success) {
+        var err = new Error(json.message || 'API Error');
+        err.code = json.code;
+        throw err;
+      }
+      return json.data;
+    });
+}
+
+function getToken() {
+  try { return localStorage.getItem('ph_token') || ''; } catch (e) { return ''; }
+}
+function setToken(tok) {
+  try { localStorage.setItem('ph_token', tok || ''); } catch (e) {}
+}
+
+/* ---------------------------------------------------------------------
+ * SHIM: ຈຳລອງ google.script.run.withSuccessHandler().withFailureHandler()
+ * ໃຫ້ໃຊ້ຮູບແບບດຽວກັບ Apps Script HtmlService ເດີມ ແຕ່ແທນທີ່ດ້ວຍ fetch()
+ * ຢູ່ເບື້ອງຫຼັງ — ໂຄ້ດທຸລະກິດຂ້າງລຸ່ມນີ້ບໍ່ຕ້ອງແກ້ໄຂຫຍັງເລີຍ
+ * ------------------------------------------------------------------- */
+function createScriptRunner_() {
+  var state = { success: null, failure: null };
+  var proxy = new Proxy({}, {
+    get: function (_target, prop) {
+      if (prop === 'withSuccessHandler') return function (cb) { state.success = cb; return proxy; };
+      if (prop === 'withFailureHandler') return function (cb) { state.failure = cb; return proxy; };
+      return function () {
+        var args = Array.prototype.slice.call(arguments);
+        gasCall(prop, args)
+          .then(function (data) { if (state.success) state.success(data); })
+          .catch(function (err) { if (state.failure) state.failure(err); else console.error('GAS API error:', err); });
+      };
+    }
+  });
+  return proxy;
+}
+window.google = window.google || {};
+Object.defineProperty(window.google, 'script', {
+  get: function () { return { run: createScriptRunner_() }; }
+});
+
+/* =====================================================================
+ * ໂຕ APP ຫຼັກ (ຄືເດີມ 100% — ໃຊ້ google.script.run ຄືກັນກັບເວີຊັນ Apps Script)
+ * ===================================================================== */
 var STORE = { settings:{}, services:[], categories:[], activeCat:'all', bannerIdx:0 };
 
 window.onload = function(){
-  google.script.run.withSuccessHandler(onStorefrontLoaded).withFailureHandler(function(e){ toast('ຜິດພາດ: '+e.message); }).apiPublicStorefront();
-  var savedPhone = localStorage.getItem('ph_phone');
+  if (!API_BASE_URL || API_BASE_URL.indexOf('script.google.com') === -1) {
+    showCfgBanner('ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ API_BASE_URL ໃຫ້ຖືກຕ້ອງ - ກະລຸນາແກ້ໄຂໃນໄຟລ໌ Index.html');
+    return;
+  }
+  bootStorefront();
+  var savedPhone;
+  try { savedPhone = localStorage.getItem('ph_phone'); } catch(e){ savedPhone = null; }
   if (savedPhone) document.getElementById('trackPhone').value = savedPhone;
 };
+
+function bootStorefront(){
+  hideCfgBanner();
+  google.script.run.withSuccessHandler(onStorefrontLoaded).withFailureHandler(function(e){
+    toast('ຜິດພາດ: '+e.message);
+    showCfgBanner('ເຊື່ອມຕໍ່ Backend API ບໍ່ໄດ້ ('+e.message+') - ກວດສອບ API_BASE_URL ແລະ ການ Deploy Web App');
+  }).apiPublicStorefront();
+}
+
+function showCfgBanner(msg){
+  document.getElementById('cfgBannerText').textContent = msg;
+  document.getElementById('cfgBanner').classList.add('show');
+}
+function hideCfgBanner(){
+  document.getElementById('cfgBanner').classList.remove('show');
+}
 
 function onStorefrontLoaded(data){
   STORE.settings = data.settings || {};
@@ -375,15 +485,16 @@ function showPage(name){
 function openDrawer(){ document.getElementById('drawerOverlay').classList.add('active'); document.getElementById('drawer').classList.add('active'); }
 function closeDrawer(){ document.getElementById('drawerOverlay').classList.remove('active'); document.getElementById('drawer').classList.remove('active'); }
 
-/* ===== GO TO ADMIN (server-side view=admin) ===== */
+/* ===== GO TO ADMIN =====
+ * ເນື່ອງຈາກ Backend ຕອນນີ້ເປັນ API-only ແລ້ວ, ໜ້າ Admin ຕ້ອງຖືກ deploy
+ * ແຍກຕ່າງຫາກ (ຕົວຢ່າງ: GitHub Pages repo ອື່ນ ໂດຍໃຊ້ shim ດຽວກັນນີ້)
+ * ແລ້ວຕັ້ງຄ່າ URL ໄວ້ໃນຕົວແປ ADMIN_URL ຢູ່ເທິງສຸດຂອງໄຟລ໌ */
 function goAdmin(){
-  try{
-    var url = new URL(window.location.href);
-    url.searchParams.set('view','admin');
-    window.top.location.href = url.toString();
-  }catch(e){
-    window.top.location.href = window.location.href + (window.location.href.indexOf('?')>-1 ? '&':'?') + 'view=admin';
+  if (!ADMIN_URL) {
+    toast('ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ ADMIN_URL - ກະລຸນາແກ້ໄຂໃນໄຟລ໌ Index.html');
+    return;
   }
+  window.location.href = ADMIN_URL;
 }
 
 /* ===== BOOKING ===== */
@@ -404,7 +515,7 @@ function submitBooking(){
     btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-calendar-check"></i> ຢືນຢັນການຈອງ';
     if (res.success) {
       toast('ຈອງນັດສຳເລັດ! ພະນັກງານຈະຕິດຕໍ່ຢືນຢັນ');
-      localStorage.setItem('ph_phone', phone);
+      try { localStorage.setItem('ph_phone', phone); } catch(e){}
       document.getElementById('bkName').value=''; document.getElementById('bkNotes').value='';
       showPage('home');
     } else { toast(res.message || 'ຜິດພາດ'); }
@@ -423,7 +534,7 @@ function doTrackLookup(){
   google.script.run.withSuccessHandler(function(res){
     btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ຄົ້ນຫາຂໍ້ມູນ';
     if (!res.success) { toast(res.message); return; }
-    localStorage.setItem('ph_phone', phone);
+    try { localStorage.setItem('ph_phone', phone); } catch(e){}
     renderTrackDashboard(res);
   }).withFailureHandler(function(e){
     btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ຄົ້ນຫາຂໍ້ມູນ';
@@ -460,7 +571,7 @@ function renderTrackDashboard(res){
 }
 
 function trackLogout(){
-  localStorage.removeItem('ph_phone');
+  try { localStorage.removeItem('ph_phone'); } catch(e){}
   document.getElementById('trackPhone').value = '';
   document.getElementById('trackGate').style.display = 'block';
   document.getElementById('trackDashboard').style.display = 'none';
