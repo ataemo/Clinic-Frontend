@@ -229,6 +229,7 @@ button{font-family:inherit;}
       <h3 style="margin:0 0 6px;">ຂໍ້ມູນຂອງຂ້ອຍ</h3>
       <p style="color:var(--muted);font-size:12.5px;margin:0 0 16px;">ປ້ອນເບີໂທລະສັບທີ່ລົງທະບຽນໄວ້ ເພື່ອເບິ່ງຂໍ້ມູນ, ຄິວ, ນັດໝາຍ, ໃບບິນ ແລະ ໃບສັ່ງຢາ</p>
       <div class="field"><input id="trackPhone" placeholder="ປ້ອນເບີໂທລະສັບ..."></div>
+      <div class="field" id="trackOtpField" style="display:none;"><input id="trackOtp" placeholder="ປ້ອນລະຫັດ OTP 6 ຕົວເລກ" maxlength="6"></div>
       <button class="btn btn-gold" id="trackSubmitBtn" onclick="doTrackLookup()"><i class="fa-solid fa-magnifying-glass"></i> ຄົ້ນຫາຂໍ້ມູນ</button>
     </div>
     <div id="trackDashboard" style="display:none;"></div>
@@ -339,6 +340,7 @@ Object.defineProperty(window.google, 'script', {
  * ໂຕ APP ຫຼັກ (ຄືເດີມ 100% — ໃຊ້ google.script.run ຄືກັນກັບເວີຊັນ Apps Script)
  * ===================================================================== */
 var STORE = { settings:{}, services:[], categories:[], activeCat:'all', bannerIdx:0 };
+var trackOtpRequested = false;
 
 window.onload = function(){
   if (!API_BASE_URL || API_BASE_URL.indexOf('script.google.com') === -1) {
@@ -427,9 +429,13 @@ function renderMarquee(){
 function renderCategories(){
   var icons = {};
   try { icons = JSON.parse(STORE.settings.category_icons || '{}'); } catch(e){ icons = {}; }
+  var order = [];
+  try { order = JSON.parse(STORE.settings.category_order || '[]'); } catch(e){ order = []; }
+  var cats = order.filter(function(c){ return STORE.categories.indexOf(c)>-1; });
+  STORE.categories.forEach(function(c){ if (cats.indexOf(c)===-1) cats.push(c); });
   function iconHtml(c){ return icons[c] ? '<i class="fa-solid '+icons[c]+'" style="margin-right:5px;"></i>' : ''; }
   var html = '<div class="cat-chip active" onclick="filterCat(\'all\',this)"><i class="fa-solid fa-border-all" style="margin-right:5px;"></i>ທັງໝົດ</div>' +
-    STORE.categories.map(function(c){ return '<div class="cat-chip" onclick="filterCat(\''+c+'\',this)">'+iconHtml(c)+c+'</div>'; }).join('');
+    cats.map(function(c){ return '<div class="cat-chip" onclick="filterCat(\''+c+'\',this)">'+iconHtml(c)+c+'</div>'; }).join('');
   document.getElementById('catScroll').innerHTML = html;
   document.getElementById('catScroll2').innerHTML = html.replace(/filterCat/g,'filterCat2');
 }
@@ -540,17 +546,39 @@ function submitBooking(){
 function doTrackLookup(){
   var phone = document.getElementById('trackPhone').value.trim();
   if (!phone) { toast('ກະລຸນາປ້ອນເບີໂທລະສັບ'); return; }
+  var otpEnabled = STORE.settings.otp_enabled === 'true';
   var btn = document.getElementById('trackSubmitBtn');
+ 
+  // ຂັ້ນຕອນ 1: ຖ້າເປີດໃຊ້ OTP ແລະ ຍັງບໍ່ໄດ້ຂໍລະຫັດ -> ຂໍລະຫັດກ່ອນ
+  if (otpEnabled && !trackOtpRequested) {
+    btn.disabled = true; btn.innerHTML = '<span class="loading-spin"></span> ກຳລັງສົ່ງລະຫັດ...';
+    google.script.run.withSuccessHandler(function(res){
+      btn.disabled = false;
+      if (!res.success) { toast(res.message); btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ຄົ້ນຫາຂໍ້ມູນ'; return; }
+      trackOtpRequested = true;
+      document.getElementById('trackOtpField').style.display = 'block';
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> ຢືນຢັນລະຫັດ OTP';
+      toast(res.message);
+    }).withFailureHandler(function(e){
+      btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ຄົ້ນຫາຂໍ້ມູນ';
+      toast('ຜິດພາດ: '+e.message);
+    }).apiRequestOtp(phone);
+    return;
+  }
+ 
+  // ຂັ້ນຕອນ 2: ຄົ້ນຫາຂໍ້ມູນຈິງ (ພ້ອມ OTP ຖ້າມີ)
+  var otp = document.getElementById('trackOtp') ? document.getElementById('trackOtp').value.trim() : '';
   btn.disabled = true; btn.innerHTML = '<span class="loading-spin"></span> ກຳລັງຄົ້ນຫາ...';
   google.script.run.withSuccessHandler(function(res){
     btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ຄົ້ນຫາຂໍ້ມູນ';
     if (!res.success) { toast(res.message); return; }
+    trackOtpRequested = false;
     try { localStorage.setItem('ph_phone', phone); } catch(e){}
     renderTrackDashboard(res);
   }).withFailureHandler(function(e){
     btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ຄົ້ນຫາຂໍ້ມູນ';
     toast('ຜິດພາດ: '+e.message);
-  }).apiPublicPatientLookup(phone);
+  }).apiPublicPatientLookup(phone, otp);
 }
 
 function renderTrackDashboard(res){
@@ -584,6 +612,10 @@ function renderTrackDashboard(res){
 function trackLogout(){
   try { localStorage.removeItem('ph_phone'); } catch(e){}
   document.getElementById('trackPhone').value = '';
+  document.getElementById('trackOtp').value = '';
+  document.getElementById('trackOtpField').style.display = 'none';
+  trackOtpRequested = false;
+  document.getElementById('trackSubmitBtn').innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ຄົ້ນຫາຂໍ້ມູນ';
   document.getElementById('trackGate').style.display = 'block';
   document.getElementById('trackDashboard').style.display = 'none';
 }
