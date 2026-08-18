@@ -69,9 +69,14 @@ button{font-family:inherit;}
 .ph-section-head h4{margin:0;font-size:15px;}
 .ph-section-head a{font-size:12.5px;color:var(--primary);font-weight:700;cursor:pointer;}
 
-.cat-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;}
-.cat-chip{flex-shrink:0;width:76px;height:76px;aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:6px;border-radius:16px;background:var(--surface);border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;white-space:normal;text-align:center;line-height:1.2;}
-.cat-chip i{font-size:22px;}
+.cat-scroll{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 10px;}
+.cat-item{flex-shrink:0;width:78px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;}
+.cat-item-icon{width:72px;height:72px;border-radius:20px;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;transition:.15s;}
+.cat-item-icon img{width:100%;height:100%;object-fit:cover;}
+.cat-item-icon i{font-size:24px;color:var(--muted);}
+.cat-item.active .cat-item-icon{border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,118,110,.15);}
+.cat-item.active .cat-item-icon i{color:var(--primary);}
+.cat-item span{font-size:11.5px;font-weight:600;text-align:center;line-height:1.25;color:var(--text);}
 .cat-chip.active{background:var(--primary);color:#fff;border-color:var(--primary);}
 
 .promo-card{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#fdf3d9,#f8e6b8);border-radius:16px;padding:14px 16px;cursor:pointer;}
@@ -429,24 +434,31 @@ function renderMarquee(){
 function renderCategories(){
   var icons = {};
   try { icons = JSON.parse(STORE.settings.category_icons || '{}'); } catch(e){ icons = {}; }
-  function iconHtml(c){ return icons[c] ? '<i class="fa-solid '+icons[c]+'"></i>' : '<i class="fa-solid fa-tag"></i>'; }
+  function iconInner(c){
+    var v = icons[c];
+    if (v && /^https?:\/\//.test(v)) return '<img src="'+v+'" alt="">';
+    if (v) return '<i class="fa-solid '+v+'"></i>';
+    return '<i class="fa-solid fa-tag"></i>';
+  }
   var cats = (STORE.categories || []).filter(function(c){ return c && c.toString().trim(); });
-  var html = '<div class="cat-chip active" onclick="filterCat(\'all\',this)"><i class="fa-solid fa-border-all"></i><span>ທັງໝົດ</span></div>' +
-    cats.map(function(c){ return '<div class="cat-chip" onclick="filterCat(\''+c+'\',this)">'+iconHtml(c)+c+'</div>'; }).join('');
+  var html = '<div class="cat-item active" onclick="filterCat(\'all\',this)"><div class="cat-item-icon"><i class="fa-solid fa-border-all"></i></div><span>ທັງໝົດ</span></div>' +
+    cats.map(function(c){
+      return '<div class="cat-item" onclick="filterCat(\''+c+'\',this)"><div class="cat-item-icon">'+iconInner(c)+'</div><span>'+c+'</span></div>';
+    }).join('');
   document.getElementById('catScroll').innerHTML = html;
   document.getElementById('catScroll2').innerHTML = html.replace(/filterCat/g,'filterCat2');
 }
 function filterCat(cat, el){
   STORE.activeCat = cat;
   showPage('services');
-  document.getElementById('catScroll2').querySelectorAll('.cat-chip').forEach(function(c){
+  document.getElementById('catScroll2').querySelectorAll('.cat-item').forEach(function(c){
     c.classList.toggle('active', c.textContent === el.textContent);
   });
   renderAllServices();
 }
 function filterCat2(cat, el){
   STORE.activeCat = cat;
-  el.parentElement.querySelectorAll('.cat-chip').forEach(function(c){c.classList.remove('active');});
+  el.parentElement.querySelectorAll('.cat-item').forEach(function(c){c.classList.remove('active');});
   el.classList.add('active');
   renderAllServices();
 }
