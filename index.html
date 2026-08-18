@@ -117,6 +117,14 @@ button{font-family:inherit;}
 .promo-progress-bar{background:linear-gradient(90deg,#e11d48,#ff8a00);height:100%;}
 .promo-sold-text{font-size:10px;color:var(--muted);margin-top:4px;}
 
+.modal-promo-banner{background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:1.5px dashed #e11d48;border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+.modal-promo-banner .mpb-badge{background:#e11d48;color:#fff;font-weight:800;font-size:11px;padding:3px 8px;border-radius:8px;flex-shrink:0;}
+.modal-promo-banner .mpb-text{font-size:11.5px;color:#7a1a2c;flex:1;}
+.book-promo-banner{background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:1.5px solid #e11d48;border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.book-promo-banner b{color:#e11d48;font-size:13px;}
+.book-promo-banner span{font-size:11px;color:#7a1a2c;display:block;margin-top:2px;}
+.book-promo-banner a{font-size:11px;color:#7a1a2c;text-decoration:underline;cursor:pointer;flex-shrink:0;}
+
 .svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .svc-card{background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;}
 .svc-card img{width:100%;aspect-ratio:1/1;height:auto;object-fit:cover;background:#e2e8f0;}
@@ -486,7 +494,7 @@ function renderPromoPage(){
     var countdownHtml = p.SoldOut
       ? '<div class="pcountdown"><i class="fa-solid fa-circle-xmark"></i><span>ສິນຄ້າ/ໂຄຕ້າໝົດແລ້ວ</span></div>'
       : '<div class="pcountdown"><i class="fa-solid fa-clock"></i><span id="pc_'+p.Id+'">--:--:--</span></div>';
-    return '<div class="promo-item'+soldoutCls+'" '+(p.SoldOut?'':'onclick="openServiceModal(\''+p.ServiceId+'\')"')+'>'+
+    return '<div class="promo-item'+soldoutCls+'" '+(p.SoldOut?'':'onclick="openServiceModal(\''+p.ServiceId+'\',\''+p.Id+'\')"')+'>'+
       '<div class="pimg">'+tagHtml+'<img src="'+img+'" onerror="this.src=\'https://placehold.co/300x300?text=No+Image\'"></div>'+
       '<div class="pbody"><div class="pname">'+p.Name+'</div>'+
       '<div class="pprice"><span class="pnew">'+fmtMoney(p.PromoPrice)+'</span><span class="pold">'+fmtMoney(p.OriginalPrice)+'</span></div>'+
@@ -595,16 +603,61 @@ function renderAllServices(){
   var list = STORE.services.filter(function(s){ return STORE.activeCat==='all' || s.Category===STORE.activeCat; });
   document.getElementById('allSvcGrid').innerHTML = list.length ? list.map(svcCardHtml).join('') : '<div class="empty-mini">ບໍ່ພົບບໍລິການ</div>';
 }
-function openServiceModal(id){
+var SELECTED_PROMO = null;
+
+function openServiceModal(id, promoId){
   var s = STORE.services.find(function(x){return x.Id===id;});
   if (!s) return;
+  var promo = promoId ? PROMO_DATA.find(function(x){ return x.Id===promoId; }) : null;
+  var validPromo = promo && !promo.SoldOut;
+
   document.getElementById('modalTitle').textContent = s.Name;
+  var priceHtml = validPromo
+    ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span class="chip chip-blue">'+(s.Category||'')+'</span>'+
+      '<div style="text-align:right;"><b style="color:#e11d48;font-size:16px;">'+fmtMoney(promo.PromoPrice)+'</b><br><span style="text-decoration:line-through;color:var(--muted);font-size:11.5px;">'+fmtMoney(s.Price)+'</span></div></div>'+
+      '<div class="modal-promo-banner"><span class="mpb-badge">-'+promo.DiscountPercent+'%</span><span class="mpb-text">ໂປຣນີ້ເຫຼືອ '+(promo.TotalStock-promo.SoldCount)+' ສິດ • ໝົດເຂດພາຍໃນ <b id="modalPromoCountdown">--:--:--</b></span></div>'
+    : '<div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span class="chip chip-blue">'+(s.Category||'')+'</span><b style="color:var(--primary);">'+fmtMoney(s.Price)+'</b></div>';
+
+  var btnHtml = validPromo
+    ? '<button class="btn btn-primary" style="background:linear-gradient(135deg,#e11d48,#ff8a00);" onclick="selectPromoAndBook(\''+s.Id+'\',\''+promo.Id+'\')"><i class="fa-solid fa-bolt"></i> ຈອງໂປຣນີ້ - '+fmtMoney(promo.PromoPrice)+'</button>'
+    : '<button class="btn btn-primary" onclick="closeModal();showPage(\'book\');clearBookingPromo();document.getElementById(\'bkService\').value=\''+s.Id+'\';">ຈອງນັດບໍລິການນີ້</button>';
+
   document.getElementById('modalBody').innerHTML =
     '<img src="'+(s.Image||'https://images.unsplash.com/photo-1570172619644-8a9f81dc236c?w=600')+'" style="width:100%;aspect-ratio:1/1;height:auto;object-fit:cover;border-radius:12px;margin-bottom:12px;">'+
-    '<div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span class="chip chip-blue">'+(s.Category||'')+'</span><b style="color:var(--primary);">'+fmtMoney(s.Price)+'</b></div>'+
+    priceHtml+
     '<p style="font-size:13px;color:var(--muted);">ໄລຍະເວລາ: '+(s.Duration||'-')+' ນາທີ</p>'+
-    '<button class="btn btn-primary" onclick="closeModal();showPage(\'book\');document.getElementById(\'bkService\').value=\''+s.Id+'\';">ຈອງນັດບໍລິການນີ້</button>';
+    btnHtml;
   document.getElementById('modalOverlay').classList.add('active');
+
+  if (validPromo) {
+    var el = document.getElementById('modalPromoCountdown');
+    if (el) el.textContent = formatCountdown(promo.EndTime);
+  }
+}
+
+function selectPromoAndBook(serviceId, promoId){
+  var promo = PROMO_DATA.find(function(x){ return x.Id===promoId; });
+  SELECTED_PROMO = promo || null;
+  closeModal();
+  showPage('book');
+  document.getElementById('bkService').value = serviceId;
+  updateBookingPromoUI();
+}
+
+function clearBookingPromo(){
+  SELECTED_PROMO = null;
+  updateBookingPromoUI();
+}
+
+function updateBookingPromoUI(){
+  var wrap = document.getElementById('bookPromoBanner');
+  if (!wrap) return;
+  if (!SELECTED_PROMO) { wrap.style.display = 'none'; wrap.innerHTML=''; return; }
+  var p = SELECTED_PROMO;
+  wrap.style.display = 'flex';
+  wrap.innerHTML = '<div><b><i class="fa-solid fa-bolt"></i> ໃຊ້ລາຄາໂປຣ: '+fmtMoney(p.PromoPrice)+'</b>'+
+    '<span>ລາຄາປົກກະຕິ '+fmtMoney(p.OriginalPrice)+' • ຫຼຸດ '+p.DiscountPercent+'%</span></div>'+
+    '<a onclick="clearBookingPromo()">ຍົກເລີກໂປຣ</a>';
 }
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); }
 
@@ -614,6 +667,9 @@ function populateBookServiceSelect(){
   STORE.services.forEach(function(s){
     var o = document.createElement('option'); o.value = s.Id; o.textContent = s.Name+' - '+fmtMoney(s.Price); sel.appendChild(o);
   });
+  sel.onchange = function(){
+    if (SELECTED_PROMO && SELECTED_PROMO.ServiceId !== sel.value) clearBookingPromo();
+  };
 }
 
 /* ===== PAGE NAV ===== */
