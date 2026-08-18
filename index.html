@@ -84,6 +84,39 @@ button{font-family:inherit;}
 .promo-card b{font-size:13.5px;display:block;}
 .promo-card span{font-size:11.5px;color:#7a5c0f;}
 
+.flash-teaser{background:linear-gradient(135deg,#ff5b39,#ff8a00);border-radius:18px;padding:14px;cursor:pointer;overflow:hidden;}
+.flash-teaser-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.flash-badge{background:#fff;color:#e11d48;font-weight:800;font-size:12px;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+.flash-countdown{background:rgba(0,0,0,.25);color:#fff;font-weight:700;font-size:12px;padding:5px 10px;border-radius:20px;font-variant-numeric:tabular-nums;}
+.flash-teaser-scroll{display:flex;gap:10px;overflow-x:auto;}
+.flash-mini-card{flex-shrink:0;width:110px;background:#fff;border-radius:12px;overflow:hidden;position:relative;}
+.flash-mini-card img{width:100%;height:80px;object-fit:cover;}
+.flash-mini-card .fbody{padding:6px 8px;}
+.flash-mini-card .fname{font-size:10.5px;font-weight:700;line-height:1.25;min-height:26px;overflow:hidden;}
+.flash-mini-card .fprice{color:#e11d48;font-weight:800;font-size:11.5px;}
+.flash-mini-card .fold{color:#94a3b8;text-decoration:line-through;font-size:10px;}
+.flash-disc-tag{position:absolute;top:6px;left:6px;background:#e11d48;color:#fff;font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:8px;z-index:2;}
+
+.flash-hero{background:linear-gradient(135deg,#ff5b39,#ff8a00);padding:22px 18px;text-align:center;color:#fff;}
+.flash-hero-title{font-size:24px;font-weight:800;letter-spacing:1px;}
+.flash-hero-sub{font-size:12px;opacity:.9;margin-top:4px;}
+
+.promo-item{background:var(--surface);border-radius:16px;margin-bottom:14px;overflow:hidden;border:1px solid var(--border);display:flex;}
+.promo-item.soldout{opacity:.55;}
+.promo-item .pimg{position:relative;width:120px;flex-shrink:0;}
+.promo-item .pimg img{width:100%;height:100%;object-fit:cover;}
+.promo-item .ptag{position:absolute;top:6px;left:6px;background:#e11d48;color:#fff;font-size:10px;font-weight:800;padding:3px 7px;border-radius:8px;}
+.promo-item .ptag.gray{background:#64748b;}
+.promo-item .pbody{padding:10px 12px;flex:1;min-width:0;}
+.promo-item .pname{font-size:13px;font-weight:700;margin-bottom:6px;}
+.promo-item .pprice{display:flex;align-items:baseline;gap:8px;}
+.promo-item .pnew{color:#e11d48;font-weight:800;font-size:15px;}
+.promo-item .pold{color:#94a3b8;text-decoration:line-through;font-size:11.5px;}
+.promo-item .pcountdown{display:flex;align-items:center;gap:5px;font-size:10.5px;color:#d97706;margin-top:6px;font-weight:700;}
+.promo-progress{background:#f1f5f9;border-radius:8px;height:6px;margin-top:8px;overflow:hidden;}
+.promo-progress-bar{background:linear-gradient(90deg,#e11d48,#ff8a00);height:100%;}
+.promo-sold-text{font-size:10px;color:var(--muted);margin-top:4px;}
+
 .svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .svc-card{background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;}
 .svc-card img{width:100%;aspect-ratio:1/1;height:auto;object-fit:cover;background:#e2e8f0;}
@@ -180,7 +213,7 @@ button{font-family:inherit;}
     </div>
     <div class="ph-actions">
       <div class="ph-icon-btn" onclick="showPage('track')"><i class="fa-solid fa-heart-pulse"></i></div>
-      <div class="ph-icon-btn" onclick="openDrawer()"><i class="fa-solid fa-ellipsis-vertical"></i></div>
+      <div class="ph-icon-btn" onclick="showPage('promo')"><i class="fa-solid fa-bolt" style="color:#e11d48;"></i></div>
     </div>
   </div>
 
@@ -194,10 +227,13 @@ button{font-family:inherit;}
       <div class="cat-scroll" id="catScroll"><div class="skel" style="width:100%;height:36px;"></div></div>
     </div>
 
-    <div class="ph-section">
-      <div class="promo-card" onclick="showPage('book')">
-        <div class="ic"><i class="fa-solid fa-gift" id="promoIcon"></i></div>
-        <div><b id="promoTitle">ໂປຣໂມຊັ່ນພິເສດປະຈຳເດືອນ</b><span id="promoSubtitle">ຈອງນັດເພື່ອຮັບສ່ວນຫຼຸດ</span></div>
+    <div class="ph-section" id="flashSaleTeaserWrap" style="display:none;">
+      <div class="flash-teaser" onclick="showPage('promo')">
+        <div class="flash-teaser-head">
+          <div class="flash-badge"><i class="fa-solid fa-bolt"></i> FLASH SALE</div>
+          <div class="flash-countdown" id="teaserCountdown">--:--:--</div>
+        </div>
+        <div class="flash-teaser-scroll" id="flashTeaserScroll"></div>
       </div>
     </div>
 
@@ -238,6 +274,17 @@ button{font-family:inherit;}
       <button class="btn btn-gold" id="trackSubmitBtn" onclick="doTrackLookup()"><i class="fa-solid fa-magnifying-glass"></i> ຄົ້ນຫາຂໍ້ມູນ</button>
     </div>
     <div id="trackDashboard" style="display:none;"></div>
+  </div>
+
+  <!-- ============ FLASH SALE PAGE ============ -->
+  <div class="ph-page" id="promoPage">
+    <div class="flash-hero">
+      <div class="flash-hero-title"><i class="fa-solid fa-bolt"></i> FLASH SALE</div>
+      <div class="flash-hero-sub">ໂປຣໂມຊັ່ນພິເສດປະຈຳເດືອນ • ຫຼຸດແຮງ ຈຳກັດເວລາ</div>
+    </div>
+    <div id="promoList" style="padding:14px;">
+      <div class="empty-mini">ກຳລັງໂຫລດ...</div>
+    </div>
   </div>
 
   <!-- ============ BOTTOM NAV ============ -->
@@ -353,6 +400,7 @@ window.onload = function(){
     return;
   }
   bootStorefront();
+  loadPromotions();
   var savedPhone;
   try { savedPhone = localStorage.getItem('ph_phone'); } catch(e){ savedPhone = null; }
   if (savedPhone) document.getElementById('trackPhone').value = savedPhone;
@@ -379,7 +427,6 @@ function onStorefrontLoaded(data){
   STORE.services = data.services || [];
   STORE.categories = data.categories || [];
   applyBranding();
-  renderPromo();
   renderBanners(data.banners || []);
   renderMarquee();
   renderCategories();
@@ -393,6 +440,78 @@ function renderPromo(){
   document.getElementById('promoTitle').textContent = s.promo_title || 'ໂປຣໂມຊັ່ນພິເສດປະຈຳເດືອນ';
   document.getElementById('promoSubtitle').textContent = s.promo_subtitle || 'ຈອງນັດເພື່ອຮັບສ່ວນຫຼຸດ';
   document.getElementById('promoIcon').className = 'fa-solid ' + (s.promo_icon || 'fa-gift');
+}
+
+var PROMO_DATA = [];
+function loadPromotions(){
+  google.script.run.withSuccessHandler(function(list){
+    PROMO_DATA = list || [];
+    renderFlashTeaser();
+    renderPromoPage();
+  }).withFailureHandler(function(e){ console.error(e); }).apiPublicPromotions();
+}
+
+function renderFlashTeaser(){
+  var wrap = document.getElementById('flashSaleTeaserWrap');
+  var active = PROMO_DATA.filter(function(p){ return !p.SoldOut; });
+  if (!active.length) { wrap.style.display='none'; clearInterval(window._teaserTimer); return; }
+  wrap.style.display = 'block';
+  document.getElementById('flashTeaserScroll').innerHTML = active.slice(0,8).map(function(p){
+    var img = p.Image || 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=300';
+    return '<div class="flash-mini-card">'+
+      '<div class="flash-disc-tag">-'+p.DiscountPercent+'%</div>'+
+      '<img src="'+img+'" onerror="this.src=\'https://placehold.co/300x200?text=No+Image\'">'+
+      '<div class="fbody"><div class="fname">'+p.Name+'</div>'+
+      '<div class="fprice">'+fmtMoney(p.PromoPrice)+'</div>'+
+      '<div class="fold">'+fmtMoney(p.OriginalPrice)+'</div></div></div>';
+  }).join('');
+  clearInterval(window._teaserTimer);
+  window._teaserTimer = setInterval(function(){
+    var el = document.getElementById('teaserCountdown');
+    if (!el) { clearInterval(window._teaserTimer); return; }
+    el.textContent = formatCountdown(active[0].EndTime);
+  }, 1000);
+}
+
+function renderPromoPage(){
+  var el = document.getElementById('promoList');
+  if (!el) return;
+  if (!PROMO_DATA.length) { el.innerHTML = '<div class="empty-mini">ຍັງບໍ່ມີໂປຣໂມຊັ່ນໃນຕອນນີ້</div>'; return; }
+  el.innerHTML = PROMO_DATA.map(function(p){
+    var img = p.Image || 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400';
+    var soldoutCls = p.SoldOut ? ' soldout' : '';
+    var tagHtml = p.SoldOut
+      ? '<div class="ptag gray">ໝົດແລ້ວ</div>'
+      : '<div class="ptag">-'+p.DiscountPercent+'%</div>';
+    var countdownHtml = p.SoldOut
+      ? '<div class="pcountdown"><i class="fa-solid fa-circle-xmark"></i><span>ສິນຄ້າ/ໂຄຕ້າໝົດແລ້ວ</span></div>'
+      : '<div class="pcountdown"><i class="fa-solid fa-clock"></i><span id="pc_'+p.Id+'">--:--:--</span></div>';
+    return '<div class="promo-item'+soldoutCls+'" '+(p.SoldOut?'':'onclick="openServiceModal(\''+p.ServiceId+'\')"')+'>'+
+      '<div class="pimg">'+tagHtml+'<img src="'+img+'" onerror="this.src=\'https://placehold.co/300x300?text=No+Image\'"></div>'+
+      '<div class="pbody"><div class="pname">'+p.Name+'</div>'+
+      '<div class="pprice"><span class="pnew">'+fmtMoney(p.PromoPrice)+'</span><span class="pold">'+fmtMoney(p.OriginalPrice)+'</span></div>'+
+      countdownHtml+
+      '<div class="promo-progress"><div class="promo-progress-bar" style="width:'+p.SoldPercent+'%;"></div></div>'+
+      '<div class="promo-sold-text">ຂາຍແລ້ວ '+p.SoldPercent+'% ('+p.SoldCount+'/'+p.TotalStock+')</div></div></div>';
+  }).join('');
+  clearInterval(window._promoTimer);
+  window._promoTimer = setInterval(function(){
+    PROMO_DATA.forEach(function(p){
+      if (p.SoldOut) return;
+      var el2 = document.getElementById('pc_'+p.Id);
+      if (el2) el2.textContent = formatCountdown(p.EndTime);
+    });
+  }, 1000);
+}
+
+function formatCountdown(endTime){
+  var diff = new Date(endTime).getTime() - Date.now();
+  if (diff <= 0) return 'ໝົດເຂດແລ້ວ';
+  var h = Math.floor(diff/3600000);
+  var m = Math.floor((diff%3600000)/60000);
+  var s = Math.floor((diff%60000)/1000);
+  function p2(n){ return n<10?'0'+n:n; }
+  return p2(h)+':'+p2(m)+':'+p2(s);
 }
 
 function applyBranding(){
