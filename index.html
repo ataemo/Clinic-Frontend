@@ -197,6 +197,67 @@ button{font-family:inherit;}
 
 .loading-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
+/* ============================================================
+   RESPONSIVE: TABLET & DESKTOP (PC) MODE
+   ============================================================ */
+.desktop-nav{display:none;}
+
+@media (min-width:900px){
+  body{background:#eef1f0;}
+
+  #shell{max-width:100%;box-shadow:none;padding-bottom:0;background:transparent;}
+
+  .ph-header{padding:14px 40px;}
+  .ph-brand b{font-size:18px;}
+  .ph-actions{display:none;}
+
+  .desktop-nav{
+    display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:24px;
+  }
+  .desktop-nav .dn-item{
+    display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;
+    font-size:14px;font-weight:700;color:var(--text);cursor:pointer;white-space:nowrap;
+  }
+  .desktop-nav .dn-item:hover{background:var(--bg);}
+  .desktop-nav .dn-item.active{background:var(--primary);color:#fff;}
+  .desktop-nav .dn-item.dn-flash{background:linear-gradient(135deg,#ff5b39,#ff8a00);color:#fff;}
+  .desktop-nav .dn-book{
+    background:linear-gradient(135deg,var(--primary),#115e59);color:#fff;
+    padding:10px 22px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;
+  }
+
+  #homePage{max-width:1180px;margin:0 auto;padding:24px 40px 60px;}
+  .banner-wrap{margin:0 0 20px;height:360px;}
+  .marquee{margin:0 0 20px;}
+  .ph-section{padding:0 0 28px;}
+  .ph-section-head h4{font-size:19px;}
+
+  .cat-scroll{overflow-x:visible;flex-wrap:wrap;justify-content:flex-start;gap:22px;}
+  .cat-item{width:96px;}
+  .cat-item-icon{width:88px;height:88px;}
+
+  .flash-teaser-scroll{overflow-x:visible;flex-wrap:wrap;}
+  .flash-mini-card{width:calc(16.66% - 9px);}
+
+  .svc-grid{grid-template-columns:repeat(4,1fr);gap:20px;}
+
+  #servicesPage, #bookPage, #trackPage, #promoPage{
+    max-width:1180px;margin:0 auto;padding:24px 40px 60px;
+  }
+  #servicesPage .svc-grid{grid-template-columns:repeat(4,1fr);}
+  #promoList{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:0;}
+  .promo-item{max-width:none;}
+  #bookPage .pcard{max-width:560px;margin:0 auto;}
+
+  .ph-bottomnav{display:none;}
+  .modal-overlay{align-items:center;}
+  .modal{border-radius:20px;max-width:480px;}
+}
+
+@media (min-width:1280px){
+  #homePage, #servicesPage, #bookPage, #trackPage, #promoPage{max-width:1320px;}
+  .svc-grid, #servicesPage .svc-grid{grid-template-columns:repeat(5,1fr);}
+}
 </style>
 </head>
 <body>
@@ -218,6 +279,13 @@ button{font-family:inherit;}
         <b id="phClinicName">ຄລີນິກ ຄວາມງາມ</b>
         <span id="phTagline">Clinic & Beauty</span>
       </div>
+    </div>
+    <div class="desktop-nav" id="desktopNav">
+      <div class="dn-item active" data-page="home" onclick="showPage('home')"><i class="fa-solid fa-house"></i> ໜ້າຫຼັກ</div>
+      <div class="dn-item" data-page="services" onclick="showPage('services')"><i class="fa-solid fa-spa"></i> ບໍລິການ</div>
+      <div class="dn-item dn-flash" data-page="promo" onclick="showPage('promo')"><i class="fa-solid fa-bolt"></i> FLASH SALE</div>
+      <div class="dn-item" data-page="track" onclick="showPage('track')"><i class="fa-solid fa-heart-pulse"></i> ຕິດຕາມ</div>
+      <div class="dn-book" onclick="showPage('book')"><i class="fa-solid fa-calendar-plus"></i> ຈອງນັດ</div>
     </div>
     <div class="ph-actions">
       <div class="ph-icon-btn" onclick="showPage('track')"><i class="fa-solid fa-heart-pulse"></i></div>
@@ -679,6 +747,9 @@ function showPage(name){
   document.querySelectorAll('.bn-btn').forEach(function(b){b.classList.remove('active');});
   var map = {home:'bn_home', services:'bn_services', track:'bn_track'};
   if (map[name]) document.getElementById(map[name]).classList.add('active');
+  document.querySelectorAll('.desktop-nav .dn-item').forEach(function(d){d.classList.remove('active');});
+  var dn = document.querySelector('.desktop-nav .dn-item[data-page="'+name+'"]');
+  if (dn) dn.classList.add('active');
   window.scrollTo(0,0);
 }
 
