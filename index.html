@@ -992,8 +992,6 @@ function renderGenericConfirmCard(opts){
       '<button class="btn btn-icon-outline" onclick="downloadConfirmCard(\''+opts.filename+'\')"><i class="fa-solid fa-download"></i> ບັນທຶກຮູບ</button>'+
       '<button class="btn btn-icon-outline" onclick="shareConfirmCard(\''+opts.filename+'\')"><i class="fa-solid fa-share-nodes"></i> ແຊຣ໌</button>'+
     '</div>'+
-       ? '<button class="btn btn-danger" onclick="closeConfirmCard();cancelAppt(\''+appt.Id+'\')">ຍົກເລີກ</button>' : ''
-    '</div>'+
     '<div style="padding:0 16px 20px;"><button class="btn btn-primary" onclick="closeConfirmCard()">ປິດ</button></div>';
 
   document.getElementById('confirmOverlay').classList.add('active');
