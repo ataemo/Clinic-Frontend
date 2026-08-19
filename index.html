@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 :root{
   --primary:#0f766e;
@@ -235,6 +236,12 @@ button{font-family:inherit;}
 .trk-card-days{font-size:11.5px;font-weight:800;margin-top:6px;}
 .trk-progress{background:#f1f5f9;border-radius:8px;height:6px;margin-top:10px;overflow:hidden;}
 .trk-progress-bar{height:100%;border-radius:8px;transition:width .3s;}
+.trk-chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;display:flex;align-items:center;gap:16px;}
+.trk-chart-canvas-box{width:92px;height:92px;flex-shrink:0;position:relative;}
+.trk-chart-legend{flex:1;display:flex;flex-direction:column;gap:7px;}
+.trk-chart-legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);}
+.trk-chart-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.trk-chart-empty{font-size:12px;color:var(--muted);}
 
 .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;}
 .drawer-overlay.active{display:block;}
@@ -1020,7 +1027,7 @@ var TRK_CONFIG = {
     getItems: function(res){ return res.prescriptions || []; },
     normalize: function(p){
       var created = new Date(p.CreatedAt);
-      var due = new Date(created.getTime()+3*86400000); // ສົມມຸດ: ຄວນມາຮັບຢາພາຍໃນ 3 ວັນ (ປັບໄດ້)
+      var due = p.DueDate ? new Date(p.DueDate) : new Date(created.getTime()+3*86400000); // ໃຊ້ຄ່າຈິງຖ້າມີ, ຄ່າສົມມຸດຖ້າຍັງບໍ່ໄດ້ຕັ້ງ
       var isDone = (p.Status==='Dispensed' || p.Status==='Cancelled');
       var cat = isDone ? 'done' : (due < new Date() ? 'overdue' : 'upcoming');
       var daysLeft = Math.ceil((due-new Date())/86400000);
@@ -1031,7 +1038,7 @@ var TRK_CONFIG = {
     getItems: function(res){ return res.invoices || []; },
     normalize: function(iv){
       var created = new Date(iv.CreatedAt);
-      var due = new Date(created.getTime()+7*86400000); // ສົມມຸດ: ຄວນຊຳລະພາຍໃນ 7 ວັນ
+      var due = iv.DueDate ? new Date(iv.DueDate) : new Date(created.getTime()+7*86400000); // ໃຊ້ຄ່າຈິງຖ້າມີ, ຄ່າສົມມຸດຖ້າຍັງບໍ່ໄດ້ຕັ້ງ
       var isDone = (Number(iv.Balance) <= 0);
       var cat = isDone ? 'done' : (due < new Date() ? 'overdue' : 'upcoming');
       var daysLeft = Math.ceil((due-new Date())/86400000);
@@ -1066,6 +1073,15 @@ function renderTrackBody(){
   var groups = {upcoming:[], done:[], overdue:[]};
   items.forEach(function(it){ groups[it.cat].push(it); });
 
+  var total = groups.upcoming.length + groups.done.length + groups.overdue.length;
+  var chartHtml = '<div class="trk-chart-wrap">'+
+    '<div class="trk-chart-canvas-box">'+(total ? '<canvas id="trkChartCanvas"></canvas>' : '<div class="trk-chart-empty" style="padding-top:34px;text-align:center;">ບໍ່ມີຂໍ້ມູນ</div>')+'</div>'+
+    '<div class="trk-chart-legend">'+
+      '<div class="trk-chart-legend-item"><span class="trk-chart-legend-dot" style="background:#0f766e;"></span>ທີ່ຈະຮອດ: <b>'+groups.upcoming.length+'</b></div>'+
+      '<div class="trk-chart-legend-item"><span class="trk-chart-legend-dot" style="background:#16a34a;"></span>ສຳເລັດແລ້ວ: <b>'+groups.done.length+'</b></div>'+
+      '<div class="trk-chart-legend-item"><span class="trk-chart-legend-dot" style="background:#e11d48;"></span>ເກີນກຳນົດ: <b>'+groups.overdue.length+'</b></div>'+
+    '</div></div>';
+
   var subtabs = '<div class="trk-subtabs">'+
     subtabBtn('upcoming','ທີ່ຈະຮອດ', groups.upcoming.length)+
     subtabBtn('done','ທີ່ສຳເລັດແລ້ວ', groups.done.length)+
@@ -1075,7 +1091,34 @@ function renderTrackBody(){
   var list = groups[TRK_SUBFILTER];
   var listHtml = list.length ? list.map(function(it){ return cardHtml(it, tab); }).join('') : '<div class="empty-mini">ບໍ່ມີລາຍການ</div>';
 
-  document.getElementById('trackTabBody').innerHTML = subtabs + listHtml;
+  document.getElementById('trackTabBody').innerHTML = chartHtml + subtabs + listHtml;
+  renderTrkChart(groups);
+}
+
+var _trkChartInstance = null;
+function renderTrkChart(groups){
+  var canvas = document.getElementById('trkChartCanvas');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (_trkChartInstance) { _trkChartInstance.destroy(); _trkChartInstance = null; }
+  var total = groups.upcoming.length + groups.done.length + groups.overdue.length;
+  if (!total) return;
+  _trkChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['ທີ່ຈະຮອດ','ສຳເລັດແລ້ວ','ເກີນກຳນົດ'],
+      datasets: [{
+        data: [groups.upcoming.length, groups.done.length, groups.overdue.length],
+        backgroundColor: ['#0f766e','#16a34a','#e11d48'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      cutout: '68%',
+      plugins: { legend: { display:false } },
+      maintainAspectRatio: false,
+      animation: { duration: 400 }
+    }
+  });
 }
 
 function subtabBtn(key,label,count){
