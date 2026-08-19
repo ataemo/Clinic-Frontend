@@ -564,7 +564,7 @@ var API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxWrKs4LMPRMuEAhHOoB
 
 // URL ຂອງໜ້າ Admin (ຫລັງບ້ານ) ຖ້າແຍກ deploy ໄປຢູ່ບ່ອນອື່ນ (ເຊັ່ນ GitHub Pages ອີກ repo ໜຶ່ງ)
 // ຖ້າຍັງບໍ່ມີ ໃຫ້ປ່ອຍວ່າງໄວ້ ລະບົບຈະສະແດງແຈ້ງເຕືອນແທນ
-var ADMIN_URL = '';
+var ADMIN_URL = 'https://yourname.github.io/clinic-admin/';
 
 /* =====================================================================
  * API CLIENT — ຮັບຜິດຊອບການເອີ້ນ Google Apps Script ຜ່ານ fetch()
@@ -1065,7 +1065,8 @@ function renderConfirmCard(appt, patient){
     filename: 'appointment-'+appt.Id,
     extraActionHtml: (appt.Status!=='Completed'&&appt.Status!=='Cancelled')
       ? '<button class="btn btn-danger" onclick="closeConfirmCard();cancelAppt(\''+appt.Id+'\')">ຍົກເລີກ</button>' : ''
-});
+  });
+}   // <-- ເພີ່ມແຖວນີ້ (ປິດ function renderConfirmCard)
 
 /* ===== ບັດ 2: ໃບບິນ ===== */
 function renderInvoiceConfirmCard(inv, patient){
