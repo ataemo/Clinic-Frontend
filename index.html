@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 :root{
@@ -287,6 +289,13 @@ button{font-family:inherit;}
 .confirm-footer i{color:#d97706;font-size:17px;margin-top:2px;}
 .confirm-footer b{font-size:12px;display:block;margin-bottom:2px;}
 .confirm-footer span{font-size:11px;color:#7a5c0f;line-height:1.4;}
+.confirm-banner{align-items:center;}
+.confirm-qr-box{background:#fff;border-radius:12px;padding:6px;width:64px;height:64px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.confirm-qr-box img,.confirm-qr-box canvas{width:100%;height:100%;}
+.confirm-actions{display:flex;gap:10px;padding:0 16px 20px;}
+.confirm-actions .btn{flex:1;}
+.confirm-actions .btn-icon-outline{background:#fff;border:1.5px solid var(--border);color:var(--text);}
+
 
 .loading-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -616,7 +625,7 @@ Object.defineProperty(window.google, 'script', {
 /* =====================================================================
  * ໂຕ APP ຫຼັກ (ຄືເດີມ 100% — ໃຊ້ google.script.run ຄືກັນກັບເວີຊັນ Apps Script)
  * ===================================================================== */
-var STORE = { settings:{}, services:[], categories:[], activeCat:'all', bannerIdx:0 };
+var STORE = { settings:{}, services:[], categories:[], doctors:[], activeCat:'all', bannerIdx:0 };
 var trackOtpRequested = false;
 
 window.onload = function(){
@@ -654,6 +663,7 @@ function onStorefrontLoaded(data){
   STORE.settings = data.settings || {};
   STORE.services = data.services || [];
   STORE.categories = data.categories || [];
+  STORE.doctors = data.doctors || [];
   applyBranding();
   renderBanners(data.banners || []);
   renderMarquee();
@@ -956,39 +966,148 @@ function submitBooking(){
   }).apiPublicBookAppointment(payload);
 }
 
-/* ===== ບັດຢືນຢັນນັດໝາຍ (ອີງແບບຮູບຕົວຢ່າງ) ===== */
+/* ===== ໂຄງສ້າງກາງ: ໃຊ້ໄດ້ກັບ ນັດໝາຍ / ໃບບິນ / ໃບສັ່ງຢາ ===== */
+function renderGenericConfirmCard(opts){
+  // opts = { icon, title, subtitle, bannerLabel, bannerValue, rows, qrText, footerTitle, footerText, filename }
+  var s = STORE.settings;
+  var illust = s.confirm_illustration || '';
+
+  document.getElementById('confirmBody').innerHTML =
+    '<div class="confirm-head">'+
+      '<div><div class="confirm-head-icon"><i class="fa-solid '+opts.icon+'"></i></div>'+
+      '<h2>'+opts.title+'</h2><p>'+(opts.subtitle||'')+'</p></div>'+
+      (illust ? '<img class="confirm-illust" src="'+illust+'">' : '')+
+    '</div>'+
+    '<div class="confirm-banner">'+
+      '<div><div class="lbl">'+opts.bannerLabel+'</div><div class="val">'+opts.bannerValue+'</div></div>'+
+      '<div class="confirm-qr-box" id="confirmQrBox"></div>'+
+    '</div>'+
+    '<div class="confirm-rows">'+opts.rows.map(function(r){
+      return '<div class="confirm-row"><div class="ic"><i class="fa-solid '+r.ic+'"></i></div><div class="lbl">'+r.lbl+'</div><div class="val">'+r.val+'</div></div>';
+    }).join('')+'</div>'+
+    '<div class="confirm-footer"><i class="fa-solid fa-bell"></i><div><b>'+(opts.footerTitle||s.confirm_footer_title||'ຢ່າລືມນະ!')+'</b><span>'+(opts.footerText||s.confirm_footer_text||'')+'</span></div></div>'+
+    '<div class="confirm-actions">'+
+      '<button class="btn btn-icon-outline" onclick="downloadConfirmCard(\''+opts.filename+'\')"><i class="fa-solid fa-download"></i> ບັນທຶກຮູບ</button>'+
+      '<button class="btn btn-icon-outline" onclick="shareConfirmCard(\''+opts.filename+'\')"><i class="fa-solid fa-share-nodes"></i> ແຊຣ໌</button>'+
+    '</div>'+
+    '<div style="padding:0 16px 20px;"><button class="btn btn-primary" onclick="closeConfirmCard()">ປິດ</button></div>';
+
+  document.getElementById('confirmOverlay').classList.add('active');
+
+  // ວາງ QR ຫຼັງ DOM render ແລ້ວ (ໃຫ້ element ມີຕົວຕົນກ່ອນ)
+  setTimeout(function(){
+    var box = document.getElementById('confirmQrBox');
+    if (box && opts.qrText && typeof QRCode !== 'undefined') {
+      box.innerHTML = '';
+      new QRCode(box, { text: opts.qrText, width: 56, height: 56, correctLevel: QRCode.CorrectLevel.M });
+    }
+  }, 30);
+}
+function closeConfirmCard(){ document.getElementById('confirmOverlay').classList.remove('active'); }
+
+/* ດາວໂຫລດບັດເປັນຮູບ JPG */
+function downloadConfirmCard(filename){
+  var el = document.getElementById('confirmBody');
+  html2canvas(el, {backgroundColor:'#eefaf6', scale:2}).then(function(canvas){
+    var link = document.createElement('a');
+    link.download = (filename||'card')+'.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 0.92);
+    link.click();
+  }).catch(function(){ toast('ບໍ່ສາມາດບັນທຶກຮູບໄດ້'); });
+}
+/* ແຊຣ໌ບັດ (ໃຊ້ Web Share API ຖ້າມີ, ບໍ່ດັ່ງນັ້ນ fallback ດາວໂຫລດແທນ) */
+function shareConfirmCard(filename){
+  var el = document.getElementById('confirmBody');
+  html2canvas(el, {backgroundColor:'#eefaf6', scale:2}).then(function(canvas){
+    canvas.toBlob(function(blob){
+      if (navigator.share && navigator.canShare && navigator.canShare({files:[new File([blob],(filename||'card')+'.jpg',{type:'image/jpeg'})]})) {
+        var file = new File([blob], (filename||'card')+'.jpg', {type:'image/jpeg'});
+        navigator.share({files:[file], title: filename||'card'}).catch(function(){});
+      } else {
+        var link = document.createElement('a');
+        link.download = (filename||'card')+'.jpg';
+        link.href = URL.createObjectURL(blob);
+        link.click();
+      }
+    }, 'image/jpeg', 0.92);
+  }).catch(function(){ toast('ບໍ່ສາມາດແຊຣ໌ໄດ້'); });
+}
+
+/* ===== ບັດ 1: ນັດໝາຍ ===== */
 function renderConfirmCard(appt, patient){
   var s = STORE.settings;
   var svc = STORE.services.find(function(x){ return x.Id === appt.ServiceId; });
-  var icon = s.confirm_icon || 'fa-calendar-check';
-  var illust = s.confirm_illustration || '';
+  var doc = STORE.doctors.find(function(x){ return x.Id === appt.DoctorId; });
 
   var rows = [
     {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+' ('+patient.HN+')') : (appt.PatientId||'-')},
-    {ic:'fa-briefcase-medical', lbl:'ບໍລິການ', val: svc ? svc.Name : '-'},
+    {ic:'fa-briefcase-medical', lbl:'ບໍລິການ', val: svc ? svc.Name : '-'}
+  ];
+  if (doc) rows.push({ic:'fa-user-doctor', lbl:'ທ່ານໝໍ', val: doc.Name + (doc.Specialty ? ' ('+doc.Specialty+')' : '')});
+  rows.push(
     {ic:'fa-calendar-day', lbl:'ວັນທີ', val: appt.Date || '-'},
     {ic:'fa-clock', lbl:'ເວລາ', val: appt.Time || '-'},
     {ic:'fa-hourglass-half', lbl:'ໄລຍະເວລາ', val: (appt.Duration||'-')+' ນາທີ'},
     {ic:'fa-circle-check', lbl:'ສະຖານະ', val: '<span class="chip '+(appt.Status==='Confirmed'?'chip-green':'chip-yellow')+'">'+appt.Status+'</span>'},
     {ic:'fa-note-sticky', lbl:'ໝາຍເຫດ', val: appt.Notes || '-'}
-  ];
+  );
 
-  document.getElementById('confirmBody').innerHTML =
-    '<div class="confirm-head">'+
-      '<div><div class="confirm-head-icon"><i class="fa-solid '+icon+'"></i></div>'+
-      '<h2>'+(s.confirm_title||'ນັດໝາຍຂອງທ່ານ')+'</h2><p>'+(s.confirm_subtitle||'')+'</p></div>'+
-      (illust ? '<img class="confirm-illust" src="'+illust+'">' : '')+
-    '</div>'+
-    '<div class="confirm-banner"><div><div class="lbl">ວັນ ແລະ ເວລານັດໝາຍ</div><div class="val">'+(appt.Date||'-')+' '+(appt.Time||'')+'</div></div><i class="fa-solid fa-bell"></i></div>'+
-    '<div class="confirm-rows">'+rows.map(function(r){
-      return '<div class="confirm-row"><div class="ic"><i class="fa-solid '+r.ic+'"></i></div><div class="lbl">'+r.lbl+'</div><div class="val">'+r.val+'</div></div>';
-    }).join('')+'</div>'+
-    '<div class="confirm-footer"><i class="fa-solid fa-bell"></i><div><b>'+(s.confirm_footer_title||'ຢ່າລືມນະ!')+'</b><span>'+(s.confirm_footer_text||'')+'</span></div></div>'+
-    '<div style="padding:0 16px 20px;"><button class="btn btn-primary" onclick="closeConfirmCard()">ປິດ</button></div>';
-
-  document.getElementById('confirmOverlay').classList.add('active');
+  renderGenericConfirmCard({
+    icon: s.confirm_icon || 'fa-calendar-check',
+    title: s.confirm_title || 'ນັດໝາຍຂອງທ່ານ',
+    subtitle: s.confirm_subtitle || '',
+    bannerLabel: 'ວັນ ແລະ ເວລານັດໝາຍ',
+    bannerValue: (appt.Date||'-')+' '+(appt.Time||''),
+    rows: rows,
+    qrText: 'APT:'+appt.Id,
+    filename: 'appointment-'+appt.Id
+  });
 }
-function closeConfirmCard(){ document.getElementById('confirmOverlay').classList.remove('active'); }
+
+/* ===== ບັດ 2: ໃບບິນ ===== */
+function renderInvoiceConfirmCard(inv, patient){
+  var rows = [
+    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+' ('+patient.HN+')') : (inv.PatientId||'-')},
+    {ic:'fa-sack-dollar', lbl:'ຍອດລວມ', val: fmtMoney(inv.Total)},
+    {ic:'fa-hand-holding-dollar', lbl:'ຊຳລະແລ້ວ', val: fmtMoney(inv.Paid)},
+    {ic:'fa-scale-unbalanced', lbl:'ຄ້າງຊຳລະ', val: fmtMoney(inv.Balance)},
+    {ic:'fa-calendar-day', lbl:'ວັນຄົບກຳນົດ', val: inv.DueDate || '-'},
+    {ic:'fa-circle-check', lbl:'ສະຖານະ', val: '<span class="chip '+(inv.Status==='Paid'?'chip-green':(inv.Status==='Partial'?'chip-yellow':'chip-red'))+'">'+inv.Status+'</span>'}
+  ];
+  renderGenericConfirmCard({
+    icon: 'fa-file-invoice-dollar',
+    title: 'ໃບບິນຂອງທ່ານ',
+    subtitle: 'ລາຍລະອຽດການຊຳລະເງິນ',
+    bannerLabel: 'ເລກທີໃບບິນ',
+    bannerValue: inv.InvoiceNo || '-',
+    rows: rows,
+    qrText: 'INV:'+inv.Id,
+    filename: 'invoice-'+(inv.InvoiceNo||inv.Id)
+  });
+}
+
+/* ===== ບັດ 3: ໃບສັ່ງຢາ ===== */
+function renderPrescriptionConfirmCard(presc, patient){
+  var rows = [
+    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+' ('+patient.HN+')') : (presc.PatientId||'-')},
+    {ic:'fa-capsules', lbl:'ຂະໜາດ', val: presc.Dosage || '-'},
+    {ic:'fa-repeat', lbl:'ຄວາມຖີ່', val: presc.Frequency || '-'},
+    {ic:'fa-boxes-stacked', lbl:'ຈຳນວນ', val: presc.Quantity || '-'},
+    {ic:'fa-calendar-day', lbl:'ວັນຄົບກຳນົດຮັບຢາ', val: presc.DueDate || '-'},
+    {ic:'fa-circle-check', lbl:'ສະຖານະ', val: '<span class="chip '+(presc.Status==='Dispensed'?'chip-green':'chip-yellow')+'">'+presc.Status+'</span>'},
+    {ic:'fa-note-sticky', lbl:'ຄຳແນະນຳ', val: presc.Instructions || '-'}
+  ];
+  renderGenericConfirmCard({
+    icon: 'fa-prescription',
+    title: 'ໃບສັ່ງຢາຂອງທ່ານ',
+    subtitle: presc.Medication || '',
+    bannerLabel: 'ຢາ',
+    bannerValue: presc.Medication || '-',
+    rows: rows,
+    qrText: 'PRESC:'+presc.Id,
+    filename: 'prescription-'+presc.Id
+  });
+}
 
 /* ===== TRACK / MY ACCOUNT ===== */
 function doTrackLookup(){
@@ -1202,9 +1321,18 @@ function cardHtml(it, tab){
 }
 
 function openTrkDetail(tab, id){
-  if (tab === 'appt') {   // <-- ເພີ່ມ 5 ແຖວນີ້
+  var patient = window.TRACK_DATA.patient;
+  if (tab === 'appt') {
     var appt = (window.TRACK_DATA.appointments||[]).find(function(x){ return String(x.Id)===String(id); });
-    if (appt) { renderConfirmCard(appt, window.TRACK_DATA.patient); return; }
+    if (appt) { renderConfirmCard(appt, patient); return; }
+  }
+  if (tab === 'inv') {
+    var inv = (window.TRACK_DATA.invoices||[]).find(function(x){ return String(x.Id)===String(id); });
+    if (inv) { renderInvoiceConfirmCard(inv, patient); return; }
+  }
+  if (tab === 'presc') {
+    var presc = (window.TRACK_DATA.prescriptions||[]).find(function(x){ return String(x.Id)===String(id); });
+    if (presc) { renderPrescriptionConfirmCard(presc, patient); return; }
   }
   var cfg = TRK_CONFIG[tab];
   var it = cfg.getItems(window.TRACK_DATA).map(cfg.normalize).find(function(x){ return String(x.id)===String(id); });
