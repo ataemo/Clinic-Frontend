@@ -219,6 +219,23 @@ button{font-family:inherit;}
 .tab-btn{flex-shrink:0;padding:9px 15px;border-radius:12px;background:var(--surface);border:1px solid var(--border);font-size:12.5px;font-weight:700;cursor:pointer;}
 .tab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
 
+/* ===== ແທັບສະຖານະ ຕິດຕາມ (ຄືຮູບຕົວຢ່າງ) ===== */
+.trk-subtabs{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;}
+.trk-subtab{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:20px;background:var(--surface);border:1.5px solid var(--border);font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;}
+.trk-subtab .cnt{background:var(--border);color:var(--text);border-radius:10px;padding:1px 7px;font-size:11px;}
+.trk-subtab.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.trk-subtab.active .cnt{background:rgba(255,255,255,.25);color:#fff;}
+.trk-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;cursor:pointer;}
+.trk-card:active{transform:scale(.98);}
+.trk-card-head{display:flex;gap:12px;align-items:flex-start;}
+.trk-card-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;color:#fff;}
+.trk-card-body{flex:1;min-width:0;}
+.trk-card-title{font-size:13.5px;font-weight:700;}
+.trk-card-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+.trk-card-days{font-size:11.5px;font-weight:800;margin-top:6px;}
+.trk-progress{background:#f1f5f9;border-radius:8px;height:6px;margin-top:10px;overflow:hidden;}
+.trk-progress-bar{height:100%;border-radius:8px;transition:width .3s;}
+
 .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;}
 .drawer-overlay.active{display:block;}
 .drawer{position:fixed;top:0;right:0;bottom:0;width:86%;max-width:400px;background:var(--surface);z-index:101;transform:translateX(100%);transition:transform .25s ease;padding:22px 18px;}
@@ -983,43 +1000,115 @@ function trackLogout(){
   document.getElementById('trackDashboard').style.display = 'none';
 }
 
+function clampPct(n){ if (isNaN(n)) return 0; return Math.max(0, Math.min(100, Math.round(n))); }
+
+var TRK_SUBFILTER = 'upcoming';
+
+var TRK_CONFIG = {
+  appt: { icon:'fa-calendar-check', color:'#0f766e',
+    getItems: function(res){ return res.appointments || []; },
+    normalize: function(a){
+      var due = a.Date ? new Date(a.Date+'T'+(a.Time||'00:00')) : null;
+      var created = new Date(a.CreatedAt);
+      var isDone = (a.Status==='Completed' || a.Status==='Cancelled');
+      var cat = isDone ? 'done' : (due && due < new Date() ? 'overdue' : 'upcoming');
+      var daysLeft = due ? Math.ceil((due-new Date())/86400000) : 0;
+      var progress = due ? clampPct((new Date()-created)/(due-created)*100) : 0;
+      return {id:a.Id, title:'ນັດພົບ - '+(a.Date||'-')+' '+(a.Time||''), sub:(a.Notes||'ບໍ່ມີໝາຍເຫດ'), cat:cat, daysLeft:daysLeft, progress:progress, raw:a};
+    }},
+  presc: { icon:'fa-prescription', color:'#7c3aed',
+    getItems: function(res){ return res.prescriptions || []; },
+    normalize: function(p){
+      var created = new Date(p.CreatedAt);
+      var due = new Date(created.getTime()+3*86400000); // ສົມມຸດ: ຄວນມາຮັບຢາພາຍໃນ 3 ວັນ (ປັບໄດ້)
+      var isDone = (p.Status==='Dispensed' || p.Status==='Cancelled');
+      var cat = isDone ? 'done' : (due < new Date() ? 'overdue' : 'upcoming');
+      var daysLeft = Math.ceil((due-new Date())/86400000);
+      var progress = clampPct((new Date()-created)/(due-created)*100);
+      return {id:p.Id, title:p.Medication, sub:(p.Dosage||'')+' • '+(p.Frequency||''), cat:cat, daysLeft:daysLeft, progress:progress, raw:p};
+    }},
+  inv: { icon:'fa-file-invoice-dollar', color:'#d97706',
+    getItems: function(res){ return res.invoices || []; },
+    normalize: function(iv){
+      var created = new Date(iv.CreatedAt);
+      var due = new Date(created.getTime()+7*86400000); // ສົມມຸດ: ຄວນຊຳລະພາຍໃນ 7 ວັນ
+      var isDone = (Number(iv.Balance) <= 0);
+      var cat = isDone ? 'done' : (due < new Date() ? 'overdue' : 'upcoming');
+      var daysLeft = Math.ceil((due-new Date())/86400000);
+      var progress = clampPct((Number(iv.Paid)/(Number(iv.Total)||1))*100);
+      return {id:iv.Id, title:iv.InvoiceNo, sub:'ຄ້າງ '+fmtMoney(iv.Balance), cat:cat, daysLeft:daysLeft, progress:progress, raw:iv};
+    }},
+  follow: { icon:'fa-bell', color:'#e11d48',
+    getItems: function(res){ return res.followups || []; },
+    normalize: function(f){
+      var created = new Date(f.CreatedAt);
+      var due = f.DueDate ? new Date(f.DueDate) : new Date(created.getTime()+7*86400000);
+      var isDone = (f.Status==='Done' || f.Status==='Cancelled');
+      var cat = isDone ? 'done' : (due < new Date() ? 'overdue' : 'upcoming');
+      var daysLeft = Math.ceil((due-new Date())/86400000);
+      var progress = clampPct((new Date()-created)/(due-created)*100);
+      return {id:f.Id, title:f.Reason, sub:'ຄົບກຳນົດ: '+(f.DueDate||'-'), cat:cat, daysLeft:daysLeft, progress:progress, raw:f};
+    }}
+};
+
 function trackTab(tab, el){
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
   if (el) el.classList.add('active');
-  var res = window.TRACK_DATA;
-  var body = document.getElementById('trackTabBody');
-  var statusColor = {Pending:'yellow',Confirmed:'blue',Completed:'green',Cancelled:'red',Paid:'green',Unpaid:'red',Partial:'yellow',Dispensed:'green'};
+  window.TRK_CURRENT_TAB = tab;
+  TRK_SUBFILTER = 'upcoming';
+  renderTrackBody();
+}
 
-  if (tab === 'appt') {
-    body.innerHTML = res.appointments.length ? res.appointments.map(function(a){
-      var canCancel = a.Status !== 'Completed' && a.Status !== 'Cancelled';
-      return '<div class="pcard"><div class="row"><b>'+(a.Date||'-')+' • '+(a.Time||'-')+'</b><span class="chip chip-'+(statusColor[a.Status]||'gray')+'">'+a.Status+'</span></div>'+
-        '<div style="font-size:12px;color:var(--muted);margin-top:4px;">'+(a.Notes||'ບໍ່ມີໝາຍເຫດ')+'</div>'+
-        (canCancel ? '<button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="cancelAppt(\''+a.Id+'\')">ຍົກເລີກນັດ</button>' : '') + '</div>';
-    }).join('') : '<div class="empty-mini">ຍັງບໍ່ມີນັດໝາຍ</div>';
-  }
-  else if (tab === 'presc') {
-    body.innerHTML = res.prescriptions.length ? res.prescriptions.map(function(p){
-      return '<div class="pcard"><div class="row"><b>'+p.Medication+'</b><span class="chip chip-'+(statusColor[p.Status]||'gray')+'">'+p.Status+'</span></div>'+
-        '<div style="font-size:12px;color:var(--muted);margin-top:4px;">ຂະໜາດ: '+(p.Dosage||'-')+' • ຄວາມຖີ່: '+(p.Frequency||'-')+'</div>'+
-        (p.ScheduleTimes ? '<div style="margin-top:8px;display:flex;align-items:center;gap:6px;background:#f0fdfa;border-radius:8px;padding:6px 10px;"><i class="fa-solid fa-clock" style="color:var(--primary);"></i><b style="font-size:12.5px;">ເວລາກິນຢາ: '+p.ScheduleTimes+'</b></div>' : '')+
-        (p.Instructions ? '<div style="font-size:11.5px;color:var(--muted);margin-top:6px;">'+p.Instructions+'</div>' : '') + '</div>';
-    }).join('') : '<div class="empty-mini">ຍັງບໍ່ມີໃບສັ່ງຢາ</div>';
-  }
-  else if (tab === 'inv') {
-    body.innerHTML = res.invoices.length ? res.invoices.map(function(iv){
-      return '<div class="pcard"><div class="row"><b>'+iv.InvoiceNo+'</b><span class="chip chip-'+(statusColor[iv.Status]||'gray')+'">'+iv.Status+'</span></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:12.5px;margin-top:6px;"><span>ລວມ: '+fmtMoney(iv.Total)+'</span><span>ຄ້າງ: '+fmtMoney(iv.Balance)+'</span></div></div>';
-    }).join('') : '<div class="empty-mini">ຍັງບໍ່ມີໃບບິນ</div>';
-  }
-  else if (tab === 'follow') {
-    var items = (res.consultations||[]).map(function(c){
-      return '<div class="pcard"><b>'+(c.Diagnosis||'ບັນທຶກການກວດ')+'</b><div style="font-size:12px;color:var(--muted);margin-top:4px;">'+(c.TreatmentPlan||c.Assessment||'-')+'</div></div>';
-    }).concat((res.followups||[]).map(function(f){
-      return '<div class="pcard"><div class="row"><b>'+f.Reason+'</b><span class="chip chip-'+(statusColor[f.Status]||'gray')+'">'+f.Status+'</span></div><div style="font-size:12px;color:var(--muted);margin-top:4px;">ວັນຄົບກຳນົດ: '+(f.DueDate||'-')+'</div></div>';
-    }));
-    body.innerHTML = items.length ? items.join('') : '<div class="empty-mini">ຍັງບໍ່ມີຂໍ້ມູນຕິດຕາມອາການ</div>';
-  }
+function renderTrackBody(){
+  var tab = window.TRK_CURRENT_TAB;
+  var cfg = TRK_CONFIG[tab];
+  var items = cfg.getItems(window.TRACK_DATA).map(cfg.normalize);
+  var groups = {upcoming:[], done:[], overdue:[]};
+  items.forEach(function(it){ groups[it.cat].push(it); });
+
+  var subtabs = '<div class="trk-subtabs">'+
+    subtabBtn('upcoming','ທີ່ຈະຮອດ', groups.upcoming.length)+
+    subtabBtn('done','ທີ່ສຳເລັດແລ້ວ', groups.done.length)+
+    subtabBtn('overdue','ທີ່ເກີນກຳນົດ', groups.overdue.length)+
+    '</div>';
+
+  var list = groups[TRK_SUBFILTER];
+  var listHtml = list.length ? list.map(function(it){ return cardHtml(it, tab); }).join('') : '<div class="empty-mini">ບໍ່ມີລາຍການ</div>';
+
+  document.getElementById('trackTabBody').innerHTML = subtabs + listHtml;
+}
+
+function subtabBtn(key,label,count){
+  return '<div class="trk-subtab'+(TRK_SUBFILTER===key?' active':'')+'" onclick="TRK_SUBFILTER=\''+key+'\';renderTrackBody();"><span>'+label+'</span><span class="cnt">'+count+'</span></div>';
+}
+
+function cardHtml(it, tab){
+  var cfg = TRK_CONFIG[tab];
+  var colorMap = {upcoming:'#0f766e', done:'#16a34a', overdue:'#e11d48'};
+  var barColor = colorMap[it.cat];
+  var daysText = it.cat==='done' ? '✓ ສຳເລັດແລ້ວ' : (it.cat==='overdue' ? 'ເກີນກຳນົດ '+Math.abs(it.daysLeft)+' ວັນ' : 'ອີກ '+it.daysLeft+' ວັນ');
+  return '<div class="trk-card" onclick="openTrkDetail(\''+tab+'\',\''+it.id+'\')">'+
+    '<div class="trk-card-head">'+
+    '<div class="trk-card-icon" style="background:'+cfg.color+';"><i class="fa-solid '+cfg.icon+'"></i></div>'+
+    '<div class="trk-card-body"><div class="trk-card-title">'+esc(it.title)+'</div>'+
+    '<div class="trk-card-sub">'+esc(it.sub)+'</div>'+
+    '<div class="trk-card-days" style="color:'+barColor+';">'+daysText+'</div></div></div>'+
+    '<div class="trk-progress"><div class="trk-progress-bar" style="width:'+it.progress+'%;background:'+barColor+';"></div></div>'+
+    '</div>';
+}
+
+function openTrkDetail(tab, id){
+  var cfg = TRK_CONFIG[tab];
+  var it = cfg.getItems(window.TRACK_DATA).map(cfg.normalize).find(function(x){ return String(x.id)===String(id); });
+  if (!it) return;
+  var r = it.raw;
+  var rows = Object.keys(r).filter(function(k){ return k!=='Id' && r[k]!==''; }).map(function(k){
+    return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;"><span style="color:var(--muted);">'+k+'</span><b>'+esc(String(r[k]))+'</b></div>';
+  }).join('');
+  document.getElementById('modalTitle').textContent = it.title;
+  document.getElementById('modalBody').innerHTML =
+    '<div class="trk-progress" style="margin-bottom:14px;"><div class="trk-progress-bar" style="width:'+it.progress+'%;background:'+({upcoming:'#0f766e',done:'#16a34a',overdue:'#e11d48'}[it.cat])+';"></div></div>'+rows;
+  document.getElementById('modalOverlay').classList.add('active');
 }
 
 function cancelAppt(apptId){
