@@ -988,9 +988,10 @@ function renderGenericConfirmCard(opts){
     }).join('')+'</div>'+
     '<div class="confirm-footer"><i class="fa-solid fa-bell"></i><div><b>'+(opts.footerTitle||s.confirm_footer_title||'ຢ່າລືມນະ!')+'</b><span>'+(opts.footerText||s.confirm_footer_text||'')+'</span></div></div>'+
     '<div class="confirm-actions">'+
-      (opts.extraActionHtml || '') +
       '<button class="btn btn-icon-outline" onclick="downloadConfirmCard(\''+opts.filename+'\')"><i class="fa-solid fa-download"></i> ບັນທຶກຮູບ</button>'+
       '<button class="btn btn-icon-outline" onclick="shareConfirmCard(\''+opts.filename+'\')"><i class="fa-solid fa-share-nodes"></i> ແຊຣ໌</button>'+
+      extraActionHtml: (appt.Status!=='Completed'&&appt.Status!=='Cancelled')
+       ? '<button class="btn btn-danger" onclick="closeConfirmCard();cancelAppt(\''+appt.Id+'\')">ຍົກເລີກ</button>' : ''
     '</div>'+
     '<div style="padding:0 16px 20px;"><button class="btn btn-primary" onclick="closeConfirmCard()">ປິດ</button></div>';
 
@@ -1062,10 +1063,9 @@ function renderConfirmCard(appt, patient){
     bannerValue: (appt.Date||'-')+' '+(appt.Time||''),
     rows: rows,
     qrText: 'APT:'+appt.Id,
-    filename: 'appointment-'+appt.Id,
-    extraActionHtml: (appt.Status!=='Completed'&&appt.Status!=='Cancelled')
-      ? '<button class="btn btn-danger" onclick="closeConfirmCard();cancelAppt(\''+appt.Id+'\')">ຍົກເລີກ</button>' : ''
-});
+    filename: 'appointment-'+appt.Id
+  });
+}
 
 /* ===== ບັດ 2: ໃບບິນ ===== */
 function renderInvoiceConfirmCard(inv, patient){
@@ -1109,28 +1109,6 @@ function renderPrescriptionConfirmCard(presc, patient){
     rows: rows,
     qrText: 'PRESC:'+presc.Id,
     filename: 'prescription-'+presc.Id
-  });
-}
-
-/* ===== ບັດ 4: ຕິດຕາມອາການ ===== */
-function renderFollowupConfirmCard(f, patient){
-  var rows = [
-    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+' ('+patient.HN+')') : (f.PatientId||'-')},
-    {ic:'fa-bell', lbl:'ເຫດຜົນ', val: f.Reason || '-'},
-    {ic:'fa-calendar-day', lbl:'ວັນຄົບກຳນົດ', val: f.DueDate || '-'},
-    {ic:'fa-user-nurse', lbl:'ມອບໝາຍໃຫ້', val: f.AssignedTo || '-'},
-    {ic:'fa-circle-check', lbl:'ສະຖານະ', val: '<span class="chip '+(f.Status==='Done'?'chip-green':(f.Status==='Cancelled'?'chip-red':'chip-yellow'))+'">'+f.Status+'</span>'},
-    {ic:'fa-note-sticky', lbl:'ໝາຍເຫດ', val: f.Notes || '-'}
-  ];
-  renderGenericConfirmCard({
-    icon: 'fa-bell',
-    title: 'ຕິດຕາມອາການຂອງທ່ານ',
-    subtitle: f.Reason || '',
-    bannerLabel: 'ວັນຄົບກຳນົດ',
-    bannerValue: f.DueDate || '-',
-    rows: rows,
-    qrText: 'FLW:'+f.Id,
-    filename: 'followup-'+f.Id
   });
 }
 
