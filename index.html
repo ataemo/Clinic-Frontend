@@ -1098,7 +1098,7 @@ function renderInvoiceConfirmCard(inv, patient){
       '</div>'+
       '<div class="slip-upload-box">'+
         '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">ອັບໂຫລດຫຼັກຖານການໂອນເງິນ (Slip)</div>'+
-        '<img class="slip-preview-img" id="slipPreviewImg" src="'+(inv.SlipUrl||'')+'" style="display:'+(inv.SlipUrl?'block':'none')+';margin-left:auto;margin-right:auto;" onerror="this.onerror=null;this.src='+"'"+'https://placehold.co/200x150?text=Slip'+"'"+';">'+
+        '<img class="slip-preview-img" id="slipPreviewImg" data-orig="'+(inv.SlipUrl||'')+'" src="'+(inv.SlipUrl||'')+'" style="display:'+(inv.SlipUrl?'block':'none')+';margin-left:auto;margin-right:auto;" onerror="handleImgError(this,\'Slip\')">'+
         '<input type="file" accept="image/*" style="margin-top:8px;" onchange="uploadInvoiceSlip(this,\''+inv.Id+'\',\''+(patient?esc(patient.Phone||''):'')+'\')">'+
         '<div id="slipUploadStatus" style="font-size:11px;color:var(--muted);margin-top:6px;">'+(inv.SlipUrl?'ອັບໂຫລດແລ້ວ ✓':'')+'</div>'+
       '</div>';
@@ -1469,6 +1469,28 @@ function uploadInvoiceSlip(input, invoiceId, phone){
       status.innerHTML = '<span style="color:var(--danger);">⚠ '+e.message+'</span>';
     }).apiPublicUploadInvoiceSlip(invoiceId, phone, base64, (file.name||'slip')+'.jpg', 'image/jpeg');
   });
+}
+
+function driveIdFromUrl_(url){
+  if(!url) return null;
+  var m = String(url).match(/[?&]id=([a-zA-Z0-9_-]{10,})/) || String(url).match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+  return m ? m[1] : null;
+}
+function handleImgError(imgEl, placeholderText){
+  var tried = imgEl.getAttribute('data-tried') || '0';
+  var id = driveIdFromUrl_(imgEl.getAttribute('data-orig') || imgEl.src);
+  if (tried === '0' && id) {
+    imgEl.setAttribute('data-tried','1');
+    imgEl.src = 'https://drive.google.com/thumbnail?id='+id+'&sz=w1000';
+    return;
+  }
+  if (tried === '1' && id) {
+    imgEl.setAttribute('data-tried','2');
+    imgEl.src = 'https://drive.google.com/uc?export=view&id='+id;
+    return;
+  }
+  imgEl.onerror = null;
+  imgEl.src = 'https://placehold.co/200x150?text='+encodeURIComponent(placeholderText||'No Image');
 }
 
 function esc(s){ return (s===undefined||s===null) ? '' : String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
