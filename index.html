@@ -989,7 +989,7 @@ function renderGenericConfirmCard(opts){
       '<div><div class="lbl">'+opts.bannerLabel+'</div><div class="val">'+opts.bannerValue+'</div></div>'+
       '<div class="confirm-qr-box" id="confirmQrBox"></div>'+
     '</div>'+
-    '</div>'+opts.rows.map(function(r){
+    '<div class="confirm-rows">'+opts.rows.map(function(r){
       return '<div class="confirm-row"><div class="ic"><i class="fa-solid '+r.ic+'"></i></div><div class="lbl">'+r.lbl+'</div><div class="val">'+r.val+'</div></div>';
     }).join('')+'</div>'+
     (opts.extraBodyHtml || '')+
