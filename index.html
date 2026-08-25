@@ -149,6 +149,12 @@ button{font-family:inherit;}
 .book-promo-banner b{color:#e11d48;font-size:13px;}
 .book-promo-banner span{font-size:11px;color:#7a1a2c;display:block;margin-top:2px;}
 .book-promo-banner a{font-size:11px;color:#7a1a2c;text-decoration:underline;cursor:pointer;flex-shrink:0;}
+.pay-info-card{background:#f8fafc;border:1.5px dashed var(--primary);border-radius:14px;padding:14px;margin:14px 0;}
+.pay-info-card b{font-size:12.5px;display:block;margin-bottom:6px;}
+.pay-info-row{font-size:12px;color:var(--text);margin-bottom:3px;}
+.pay-qr-img{width:100%;max-width:220px;border-radius:12px;margin:10px auto 0;display:block;border:1px solid var(--border);}
+.slip-upload-box{border:1.5px dashed var(--border);border-radius:12px;padding:14px;text-align:center;margin-top:10px;}
+.slip-preview-img{width:120px;border-radius:10px;margin-top:8px;border:1px solid var(--border);}
 
 .svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .svc-card{background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:transform .22s ease, box-shadow .22s ease;}
@@ -983,9 +989,10 @@ function renderGenericConfirmCard(opts){
       '<div><div class="lbl">'+opts.bannerLabel+'</div><div class="val">'+opts.bannerValue+'</div></div>'+
       '<div class="confirm-qr-box" id="confirmQrBox"></div>'+
     '</div>'+
-    '<div class="confirm-rows">'+opts.rows.map(function(r){
+    '</div>'+opts.rows.map(function(r){
       return '<div class="confirm-row"><div class="ic"><i class="fa-solid '+r.ic+'"></i></div><div class="lbl">'+r.lbl+'</div><div class="val">'+r.val+'</div></div>';
     }).join('')+'</div>'+
+    (opts.extraBodyHtml || '')+
     '<div class="confirm-footer"><i class="fa-solid fa-bell"></i><div><b>'+(opts.footerTitle||s.confirm_footer_title||'ຢ່າລືມນະ!')+'</b><span>'+(opts.footerText||s.confirm_footer_text||'')+'</span></div></div>'+
     '<div class="confirm-actions">'+
       (opts.extraActionHtml || '') +
@@ -1078,6 +1085,24 @@ function renderInvoiceConfirmCard(inv, patient){
     {ic:'fa-calendar-day', lbl:'ວັນຄົບກຳນົດ', val: inv.DueDate || '-'},
     {ic:'fa-circle-check', lbl:'ສະຖານະ', val: '<span class="chip '+(inv.Status==='Paid'?'chip-green':(inv.Status==='Partial'?'chip-yellow':'chip-red'))+'">'+inv.Status+'</span>'}
   ];
+  var s = STORE.settings;
+  var extraBodyHtml = '';
+  if (Number(inv.Balance) > 0) {
+    extraBodyHtml =
+      '<div class="pay-info-card">'+
+        '<b><i class="fa-solid fa-building-columns"></i> ຂໍ້ມູນບັນຊີຮັບເງິນ</b>'+
+        '<div class="pay-info-row">ທະນາຄານ: '+(s.payment_bank_name||'-')+'</div>'+
+        '<div class="pay-info-row">ຊື່ບັນຊີ: '+(s.payment_account_name||'-')+'</div>'+
+        '<div class="pay-info-row">ເລກບັນຊີ: '+(s.payment_account_number||'-')+'</div>'+
+        (s.payment_qr_url ? '<img class="pay-qr-img" src="'+s.payment_qr_url+'">' : '')+
+      '</div>'+
+      '<div class="slip-upload-box">'+
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">ອັບໂຫລດຫຼັກຖານການໂອນເງິນ (Slip)</div>'+
+        '<img class="slip-preview-img" id="slipPreviewImg" src="'+(inv.SlipUrl||'')+'" style="display:'+(inv.SlipUrl?'block':'none')+';margin-left:auto;margin-right:auto;">'+
+        '<input type="file" accept="image/*" style="margin-top:8px;" onchange="uploadInvoiceSlip(this,\''+inv.Id+'\')">'+
+        '<div id="slipUploadStatus" style="font-size:11px;color:var(--muted);margin-top:6px;">'+(inv.SlipUrl?'ອັບໂຫລດແລ້ວ ✓':'')+'</div>'+
+      '</div>';
+  }
   renderGenericConfirmCard({
     icon: 'fa-file-invoice-dollar',
     title: 'ໃບບິນຂອງທ່ານ',
@@ -1085,6 +1110,7 @@ function renderInvoiceConfirmCard(inv, patient){
     bannerLabel: 'ເລກທີໃບບິນ',
     bannerValue: inv.InvoiceNo || '-',
     rows: rows,
+    extraBodyHtml: extraBodyHtml,
     qrText: 'INV:'+inv.Id,
     filename: 'invoice-'+(inv.InvoiceNo||inv.Id)
   });
@@ -1395,6 +1421,51 @@ function toast(msg){
   document.getElementById('toastWrap').appendChild(el);
   setTimeout(function(){ el.remove(); }, 3000);
 }
+
+function resizeImageToBase64(file, maxDim, quality, callback){
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+        else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', quality || 0.85).split(',')[1]);
+    };
+    img.onerror = function(){ callback(null); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function(){ callback(null); };
+  reader.readAsDataURL(file);
+}
+
+function uploadInvoiceSlip(input, invoiceId){
+  var file = input.files[0];
+  if (!file) return;
+  var status = document.getElementById('slipUploadStatus');
+  status.textContent = 'ກຳລັງອັບໂຫລດ...';
+  resizeImageToBase64(file, 1000, 0.85, function(base64){
+    if (!base64) { status.textContent = 'ຜິດພາດ: ອ່ານຮູບບໍ່ໄດ້'; return; }
+    google.script.run.withSuccessHandler(function(res){
+      status.textContent = 'ອັບໂຫລດ Slip ສຳເລັດ ✓';
+      var img = document.getElementById('slipPreviewImg');
+      if (img) { img.src = res.url; img.style.display='block'; }
+      if (window.TRACK_DATA && window.TRACK_DATA.invoices) {
+        var iv = window.TRACK_DATA.invoices.find(function(x){return x.Id===invoiceId;});
+        if (iv) iv.SlipUrl = res.url;
+      }
+    }).withFailureHandler(function(e){
+      status.innerHTML = '<span style="color:var(--danger);">⚠ '+e.message+'</span>';
+    }).apiPublicUploadInvoiceSlip(invoiceId, base64, (file.name||'slip')+'.jpg', 'image/jpeg');
+  });
+}
+
 function esc(s){ return (s===undefined||s===null) ? '' : String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 </body>
