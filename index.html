@@ -1099,7 +1099,7 @@ function renderInvoiceConfirmCard(inv, patient){
       '<div class="slip-upload-box">'+
         '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">ອັບໂຫລດຫຼັກຖານການໂອນເງິນ (Slip)</div>'+
         '<img class="slip-preview-img" id="slipPreviewImg" src="'+(inv.SlipUrl||'')+'" style="display:'+(inv.SlipUrl?'block':'none')+';margin-left:auto;margin-right:auto;">'+
-        '<input type="file" accept="image/*" style="margin-top:8px;" onchange="uploadInvoiceSlip(this,\''+inv.Id+'\')">'+
+        '<input type="file" accept="image/*" style="margin-top:8px;" onchange="uploadInvoiceSlip(this,\''+inv.Id+'\',\''+(patient?esc(patient.Phone||''):'')+'\')">'+
         '<div id="slipUploadStatus" style="font-size:11px;color:var(--muted);margin-top:6px;">'+(inv.SlipUrl?'ອັບໂຫລດແລ້ວ ✓':'')+'</div>'+
       '</div>';
   }
@@ -1445,10 +1445,15 @@ function resizeImageToBase64(file, maxDim, quality, callback){
   reader.readAsDataURL(file);
 }
 
-function uploadInvoiceSlip(input, invoiceId){
+function uploadInvoiceSlip(input, invoiceId, phone){
   var file = input.files[0];
   if (!file) return;
   var status = document.getElementById('slipUploadStatus');
+  if (!phone) {
+    status.innerHTML = '<span style="color:var(--danger);">⚠ ບໍ່ພົບເບີໂທຂອງເຈົ້າຂອງໃບບິນນີ້ - ບໍ່ສາມາດອັບໂຫລດໄດ້</span>';
+    input.value = '';
+    return;
+  }
   status.textContent = 'ກຳລັງອັບໂຫລດ...';
   resizeImageToBase64(file, 1000, 0.85, function(base64){
     if (!base64) { status.textContent = 'ຜິດພາດ: ອ່ານຮູບບໍ່ໄດ້'; return; }
@@ -1462,7 +1467,7 @@ function uploadInvoiceSlip(input, invoiceId){
       }
     }).withFailureHandler(function(e){
       status.innerHTML = '<span style="color:var(--danger);">⚠ '+e.message+'</span>';
-    }).apiPublicUploadInvoiceSlip(invoiceId, base64, (file.name||'slip')+'.jpg', 'image/jpeg');
+    }).apiPublicUploadInvoiceSlip(invoiceId, phone, base64, (file.name||'slip')+'.jpg', 'image/jpeg');
   });
 }
 
