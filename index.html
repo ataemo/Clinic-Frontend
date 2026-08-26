@@ -303,6 +303,25 @@ button{font-family:inherit;}
 .confirm-actions .btn{flex:1;}
 .confirm-actions .btn-icon-outline{background:#fff;border:1.5px solid var(--border);color:var(--text);}
 
+/* ===== CONTACT CHANNELS ===== */
+.contact-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:160;align-items:center;justify-content:center;padding:16px;}
+.contact-overlay.active{display:flex;}
+.contact-card{background:var(--surface);border-radius:24px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;padding:24px 20px;}
+.contact-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.contact-head h3{margin:0;font-size:17px;display:flex;align-items:center;gap:8px;}
+.contact-head h3 i{color:var(--danger);}
+.contact-list{display:flex;flex-direction:column;gap:12px;}
+.contact-item{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:16px;color:#fff;cursor:pointer;text-decoration:none;transition:transform .15s;}
+.contact-item:active{transform:scale(.97);}
+.contact-item .cic{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.contact-item b{font-size:14.5px;display:block;}
+.contact-item span{font-size:11.5px;opacity:.85;}
+.contact-item.c-phone{background:linear-gradient(135deg,#0f766e,#115e59);}
+.contact-item.c-whatsapp{background:linear-gradient(135deg,#25D366,#128C7E);}
+.contact-item.c-messenger{background:linear-gradient(135deg,#00B2FF,#8A3AB9);}
+.contact-item.c-line{background:linear-gradient(135deg,#06C755,#04a844);}
+.contact-empty{text-align:center;color:var(--muted);font-size:12.5px;padding:20px 0;}
+.dn-contact i{color:#e11d48;}
 
 .loading-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -400,6 +419,7 @@ button{font-family:inherit;}
       <div class="dn-item dn-flash" data-page="promo" onclick="showPage('promo')"><i class="fa-solid fa-bolt"></i> FLASH SALE</div>
       <div class="dn-item" data-page="track" onclick="showPage('track')"><i class="fa-solid fa-heart-pulse"></i> ຕິດຕາມ</div>
       <div class="dn-book" onclick="showPage('book')"><i class="fa-solid fa-calendar-plus"></i> ຈອງນັດ</div>
+      <div class="dn-item dn-contact" onclick="openContactModal()"><i class="fa-solid fa-headset"></i> ຕິດຕໍ່</div>
     </div>
     <div class="ph-actions">
       <div class="ph-icon-btn" onclick="showPage('promo')"><i class="fa-solid fa-bolt" style="color:#e11d48;"></i></div>
@@ -507,6 +527,7 @@ button{font-family:inherit;}
     <div class="drawer-item" onclick="closeDrawer();showPage('book')"><i class="fa-solid fa-calendar-check"></i> ຈອງນັດໝາຍ</div>
     <div class="drawer-item" onclick="closeDrawer();showPage('services')"><i class="fa-solid fa-bag-shopping"></i> ສິນຄ້າ/ບໍລິການ</div>
     <div class="drawer-item" onclick="closeDrawer();showPage('track')"><i class="fa-solid fa-heart-pulse"></i> ຂໍ້ມູນຂອງຂ້ອຍ</div>
+    <div class="drawer-item" onclick="closeDrawer();openContactModal()"><i class="fa-solid fa-headset"></i> ຕິດຕໍ່ຮ້ານ</div>
   </div>
 
   <!-- ============ Service detail modal ============ -->
@@ -554,6 +575,17 @@ button{font-family:inherit;}
 
   <div class="confirm-overlay" id="confirmOverlay" onclick="if(event.target===this)closeConfirmCard()">
     <div class="confirm-card" id="confirmBody"></div>
+  </div>
+
+  <!-- ============ CONTACT CHANNELS MODAL ============ -->
+  <div class="contact-overlay" id="contactOverlay" onclick="if(event.target===this)closeContactModal()">
+    <div class="contact-card">
+      <div class="contact-head">
+        <h3><i class="fa-solid fa-phone-volume"></i> ຊ່ອງທາງຕິດຕໍ່ຮ້ານ</h3>
+        <div class="drawer-close" onclick="closeContactModal()"><i class="fa-solid fa-xmark"></i></div>
+      </div>
+      <div class="contact-list" id="contactList"></div>
+    </div>
   </div>
 
   <div class="toast-wrap" id="toastWrap"></div>
@@ -903,6 +935,41 @@ function updateBookingPromoUI(){
     '<a onclick="clearBookingPromo()">ຍົກເລີກໂປຣ</a>';
 }
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); }
+
+function openContactModal(){
+  renderContactList();
+  document.getElementById('contactOverlay').classList.add('active');
+}
+function closeContactModal(){
+  document.getElementById('contactOverlay').classList.remove('active');
+}
+function renderContactList(){
+  var s = STORE.settings;
+  var channels = [];
+  if (s.contact_phone) channels.push({
+    cls:'c-phone', icon:'fa-solid fa-phone', title:'ໂທຫາຮ້ານ', sub:s.contact_phone,
+    url:'tel:'+s.contact_phone.replace(/[^0-9+]/g,'')
+  });
+  if (s.contact_whatsapp) channels.push({
+    cls:'c-whatsapp', icon:'fa-brands fa-whatsapp', title:'WhatsApp', sub:'ທັກແຊັດ',
+    url:'https://wa.me/'+s.contact_whatsapp.replace(/[^0-9]/g,'')
+  });
+  if (s.contact_messenger) channels.push({
+    cls:'c-messenger', icon:'fa-brands fa-facebook-messenger', title:'Messenger', sub:'ທັກຂໍ້ຄວາມ',
+    url: /^https?:\/\//.test(s.contact_messenger) ? s.contact_messenger : 'https://m.me/'+s.contact_messenger
+  });
+  if (s.contact_line) channels.push({
+    cls:'c-line', icon:'fa-brands fa-line', title:'Line', sub:'ທັກແຊັດ',
+    url: /^https?:\/\//.test(s.contact_line) ? s.contact_line : 'https://line.me/ti/p/~'+s.contact_line
+  });
+  var el = document.getElementById('contactList');
+  if (!channels.length) { el.innerHTML = '<div class="contact-empty">ຍັງບໍ່ໄດ້ຕັ້ງຄ່າຊ່ອງທາງຕິດຕໍ່ — ໄປຕັ້ງຄ່າໄດ້ທີ່ Admin &gt; ຕັ້ງຄ່າລະບົບ</div>'; return; }
+  el.innerHTML = channels.map(function(c){
+    return '<a class="contact-item '+c.cls+'" href="'+c.url+'" target="_blank" rel="noopener">'+
+      '<div class="cic"><i class="'+c.icon+'"></i></div>'+
+      '<div><b>'+c.title+'</b><span>'+c.sub+'</span></div></a>';
+  }).join('');
+}
 
 function populateBookServiceSelect(){
   var sel = document.getElementById('bkService');
