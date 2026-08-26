@@ -986,6 +986,8 @@ function renderContactList(){
 }
 function copyContactText(text){
   navigator.clipboard.writeText(text).then(function(){ toast('ຄັດລອກແລ້ວ: '+text); }).catch(function(){});
+}
+
 function populateBookServiceSelect(){
   var sel = document.getElementById('bkService');
   sel.innerHTML = '<option value="">-- ເລືອກບໍລິການ --</option>';
