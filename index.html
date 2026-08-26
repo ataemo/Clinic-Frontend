@@ -939,12 +939,23 @@ function closeModal(){ document.getElementById('modalOverlay').classList.remove(
 function openContactModal(){
   renderContactList();
   document.getElementById('contactOverlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
 }
 function closeContactModal(){
   document.getElementById('contactOverlay').classList.remove('active');
+  document.body.style.overflow = '';
 }
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeContactModal();
+});
+
 function renderContactList(){
   var s = STORE.settings;
+  if (!s || Object.keys(s).length === 0) {
+    document.getElementById('contactList').innerHTML = '<div class="contact-empty"><span class="loading-spin" style="border-top-color:var(--primary);"></span> ກຳລັງໂຫລດຂໍ້ມູນ...</div>';
+    setTimeout(renderContactList, 500);
+    return;
+  }
   var channels = [];
   if (s.contact_phone) channels.push({
     cls:'c-phone', icon:'fa-solid fa-phone', title:'ໂທຫາຮ້ານ', sub:s.contact_phone,
@@ -965,12 +976,16 @@ function renderContactList(){
   var el = document.getElementById('contactList');
   if (!channels.length) { el.innerHTML = '<div class="contact-empty">ຍັງບໍ່ໄດ້ຕັ້ງຄ່າຊ່ອງທາງຕິດຕໍ່ — ໄປຕັ້ງຄ່າໄດ້ທີ່ Admin &gt; ຕັ້ງຄ່າລະບົບ</div>'; return; }
   el.innerHTML = channels.map(function(c){
-    return '<a class="contact-item '+c.cls+'" href="'+c.url+'" target="_blank" rel="noopener">'+
+    var copyBtn = c.cls==='c-phone'
+      ? '<i class="fa-solid fa-copy" style="opacity:.85;margin-left:auto;padding:6px;" onclick="event.preventDefault();event.stopPropagation();copyContactText(\''+c.sub+'\')"></i>'
+      : '';
+    return '<a class="contact-item '+c.cls+'" href="'+c.url+'" target="_blank" rel="noopener" style="align-items:center;">'+
       '<div class="cic"><i class="'+c.icon+'"></i></div>'+
-      '<div><b>'+c.title+'</b><span>'+c.sub+'</span></div></a>';
+      '<div style="flex:1;"><b>'+c.title+'</b><span>'+c.sub+'</span></div>'+copyBtn+'</a>';
   }).join('');
 }
-
+function copyContactText(text){
+  navigator.clipboard.writeText(text).then(function(){ toast('ຄັດລອກແລ້ວ: '+text); }).catch(function(){});
 function populateBookServiceSelect(){
   var sel = document.getElementById('bkService');
   sel.innerHTML = '<option value="">-- ເລືອກບໍລິການ --</option>';
