@@ -3,6 +3,26 @@
 <head>
 <meta charset="utf-8">
 <title>Clinic & Aesthetic Management System</title>
+
+<!-- Web App Manifest -->
+<link rel="manifest" href="manifest.json">
+ 
+<!-- Favicon (ໄອຄອນເທິງແທັບ browser) -->
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
+<link rel="shortcut icon" href="icons/favicon.ico">
+ 
+<!-- iOS (Safari / Add to Home Screen) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Clinic & Beauty">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+
 <meta name="description" content="ຈອງນັດໝາຍອອນລາຍ ແລະ ຕິດຕາມຂໍ້ມູນສຸຂະພາບກັບຄລີນິກຄວາມງາມຂອງທ່ານ">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#0f766e">
@@ -1617,6 +1637,15 @@ function handleImgError(imgEl, placeholderText){
 }
 
 function esc(s){ return (s===undefined||s===null) ? '' : String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function (e) {
+      console.log('SW register failed:', e);
+    });
+  });
+}
 </script>
 </body>
 </html>
