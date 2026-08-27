@@ -1185,10 +1185,10 @@ function renderConfirmCard(appt, patient){
   var doc = STORE.doctors.find(function(x){ return x.Id === appt.DoctorId; });
 
   var rows = [
-    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+' ('+patient.HN+')') : (appt.PatientId||'-')},
+    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+'<br><span style="font-size:11px;font-weight:600;color:var(--muted);">'+patient.HN+'</span>') : (appt.PatientId||'-')},
     {ic:'fa-briefcase-medical', lbl:'ບໍລິການ', val: svc ? svc.Name : '-'}
   ];
-  if (doc) rows.push({ic:'fa-user-doctor', lbl:'ທ່ານໝໍ', val: doc.Name + (doc.Specialty ? ' ('+doc.Specialty+')' : '')});
+  if (doc) rows.push({ic:'fa-user-doctor', lbl:'ທ່ານໝໍ', val: doc.Name + (doc.Specialty ? ('<br><span style="font-size:11px;font-weight:600;color:var(--muted);">'+doc.Specialty+'</span>') : '')});
   rows.push(
     {ic:'fa-calendar-day', lbl:'ວັນທີ', val: appt.Date || '-'},
     {ic:'fa-clock', lbl:'ເວລາ', val: appt.Time || '-'},
@@ -1215,7 +1215,7 @@ function renderConfirmCard(appt, patient){
 /* ===== ບັດ 2: ໃບບິນ ===== */
 function renderInvoiceConfirmCard(inv, patient){
   var rows = [
-    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+' ('+patient.HN+')') : (inv.PatientId||'-')},
+    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+'<br><span style="font-size:11px;font-weight:600;color:var(--muted);">'+patient.HN+'</span>') : (inv.PatientId||'-')},
     {ic:'fa-sack-dollar', lbl:'ຍອດລວມ', val: fmtMoney(inv.Total)},
     {ic:'fa-hand-holding-dollar', lbl:'ຊຳລະແລ້ວ', val: fmtMoney(inv.Paid)},
     {ic:'fa-scale-unbalanced', lbl:'ຄ້າງຊຳລະ', val: fmtMoney(inv.Balance)},
@@ -1259,7 +1259,7 @@ function renderInvoiceConfirmCard(inv, patient){
 function renderPrescriptionConfirmCard(presc, patient){
   var s3 = STORE.settings;
   var rows = [
-    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+' ('+patient.HN+')') : (presc.PatientId||'-')},
+    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+'<br><span style="font-size:11px;font-weight:600;color:var(--muted);">'+patient.HN+'</span>') : (presc.PatientId||'-')},
     {ic:'fa-capsules', lbl:'ຂະໜາດ', val: presc.Dosage || '-'},
     {ic:'fa-repeat', lbl:'ຄວາມຖີ່', val: presc.Frequency || '-'},
     {ic:'fa-boxes-stacked', lbl:'ຈຳນວນ', val: presc.Quantity || '-'},
@@ -1284,7 +1284,7 @@ function renderPrescriptionConfirmCard(presc, patient){
 function renderFollowupConfirmCard(f, patient){
   var s4 = STORE.settings;
   var rows = [
-    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+' ('+patient.HN+')') : (f.PatientId||'-')},
+    {ic:'fa-id-card', lbl:'ຄົນເຈັບ', val: patient ? (patient.FullName+'<br><span style="font-size:11px;font-weight:600;color:var(--muted);">'+patient.HN+'</span>')  : (f.PatientId||'-')},
     {ic:'fa-bell', lbl:'ເຫດຜົນ', val: f.Reason || '-'},
     {ic:'fa-calendar-day', lbl:'ວັນຄົບກຳນົດ', val: f.DueDate || '-'},
     {ic:'fa-user-nurse', lbl:'ມອບໝາຍໃຫ້', val: f.AssignedTo || '-'},
