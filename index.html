@@ -964,22 +964,27 @@ function renderContactList(){
     return;
   }
   window._contactRetryCount = 0;
+  var phone = s.contact_phone ? String(s.contact_phone) : '';
+  var whatsapp = s.contact_whatsapp ? String(s.contact_whatsapp) : '';
+  var messenger = s.contact_messenger ? String(s.contact_messenger) : '';
+  var line = s.contact_line ? String(s.contact_line) : '';
+
   var channels = [];
-  if (s.contact_phone) channels.push({
-    cls:'c-phone', icon:'fa-solid fa-phone', title:'ໂທຫາຮ້ານ', sub:s.contact_phone,
-    url:'tel:'+s.contact_phone.replace(/[^0-9+]/g,'')
+  if (phone) channels.push({
+    cls:'c-phone', icon:'fa-solid fa-phone', title:'ໂທຫາຮ້ານ', sub:phone,
+    url:'tel:'+phone.replace(/[^0-9+]/g,'')
   });
-  if (s.contact_whatsapp) channels.push({
+  if (whatsapp) channels.push({
     cls:'c-whatsapp', icon:'fa-brands fa-whatsapp', title:'WhatsApp', sub:'ທັກແຊັດ',
-    url: /^https?:\/\//.test(s.contact_whatsapp) ? s.contact_whatsapp : 'https://wa.me/'+s.contact_whatsapp.replace(/[^0-9]/g,'')
+    url: /^https?:\/\//.test(whatsapp) ? whatsapp : 'https://wa.me/'+whatsapp.replace(/[^0-9]/g,'')
   });
-  if (s.contact_messenger) channels.push({
+  if (messenger) channels.push({
     cls:'c-messenger', icon:'fa-brands fa-facebook-messenger', title:'Messenger', sub:'ທັກຂໍ້ຄວາມ',
-    url: /^https?:\/\//.test(s.contact_messenger) ? s.contact_messenger : 'https://m.me/'+s.contact_messenger
+    url: /^https?:\/\//.test(messenger) ? messenger : 'https://m.me/'+messenger
   });
-  if (s.contact_line) channels.push({
+  if (line) channels.push({
     cls:'c-line', icon:'fa-brands fa-line', title:'Line', sub:'ທັກແຊັດ',
-    url: /^https?:\/\//.test(s.contact_line) ? s.contact_line : 'https://line.me/ti/p/~'+s.contact_line
+    url: /^https?:\/\//.test(line) ? line : 'https://line.me/ti/p/~'+line
   });
   var el = document.getElementById('contactList');
   if (!channels.length) { el.innerHTML = '<div class="contact-empty">ຍັງບໍ່ໄດ້ຕັ້ງຄ່າຊ່ອງທາງຕິດຕໍ່ — ໄປຕັ້ງຄ່າໄດ້ທີ່ Admin &gt; ຕັ້ງຄ່າລະບົບ ແລ້ວກົດ "ບັນທຶກ"</div>'; return; }
