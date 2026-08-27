@@ -705,13 +705,13 @@ function onStorefrontLoaded(data){
   STORE.services = data.services || [];
   STORE.categories = data.categories || [];
   STORE.doctors = data.doctors || [];
-  applyBranding();
-  renderBanners(data.banners || []);
-  renderMarquee();
-  renderCategories();
-  renderFeatured(data.featured || []);
-  renderAllServices();
-  populateBookServiceSelect();
+  try { applyBranding(); } catch(e){ console.error('applyBranding:', e); }
+  try { renderBanners(data.banners || []); } catch(e){ console.error('renderBanners:', e); }
+  try { renderMarquee(); } catch(e){ console.error('renderMarquee:', e); }
+  try { renderCategories(); } catch(e){ console.error('renderCategories:', e); }
+  try { renderFeatured(data.featured || []); } catch(e){ console.error('renderFeatured:', e); }
+  try { renderAllServices(); } catch(e){ console.error('renderAllServices:', e); }
+  try { populateBookServiceSelect(); } catch(e){ console.error('populateBookServiceSelect:', e); }
 }
 
 function renderPromo(){
@@ -794,6 +794,7 @@ function formatCountdown(endTime){
 }
 
 function applyBranding(){
+ try {
   var s = STORE.settings;
   document.getElementById('phClinicName').textContent = s.clinic_name_la || s.clinic_name || 'ຄລີນິກ';
   document.getElementById('phTagline').textContent = s.clinic_tagline || 'Clinic & Beauty';
@@ -805,10 +806,15 @@ function applyBranding(){
   document.getElementById('footerCopyName').textContent = s.clinic_name_la || s.clinic_name || 'Clinic & Beauty';
   if (s.phone_hotline) document.getElementById('footerPhone').innerHTML = '<i class="fa-solid fa-phone"></i> '+s.phone_hotline;
   if (s.logo_url) document.getElementById('footerLogo').innerHTML = '<img src="'+s.logo_url+'">';
+ } catch (err) {
+   console.error('applyBranding error:', err);
+   toast('ຜິດພາດ: ຂໍ້ມູນ branding ບໍ່ຖືກຕ້ອງ ('+err.message+')');
+ }
 }
 
 /* ===== BANNER SLIDER ===== */
 function renderBanners(banners){
+ try {
   var wrap = document.getElementById('bannerWrap');
   if (!banners.length) { wrap.innerHTML = '<div class="empty-mini" style="padding-top:60px;">ບໍ່ມີແບນເນີ້</div>'; return; }
   wrap.innerHTML = banners.map(function(b,i){
@@ -824,6 +830,10 @@ function renderBanners(banners){
       slides[STORE.bannerIdx].classList.add('active'); dots[STORE.bannerIdx].classList.add('active');
     }, 4000);
   }
+ } catch (err) {
+   console.error('renderBanners error:', err);
+   document.getElementById('bannerWrap').innerHTML = '<div class="empty-mini" style="padding-top:60px;">ບໍ່ສາມາດໂຫລດແບນເນີ້ໄດ້</div>';
+ }
 }
 
 function renderMarquee(){
@@ -951,6 +961,7 @@ document.addEventListener('keydown', function(e){
 });
 
 function renderContactList(){
+ try {
   var s = STORE.settings;
   if (!s || Object.keys(s).length === 0) {
     document.getElementById('contactList').innerHTML = '<div class="contact-empty"><span class="loading-spin" style="border-top-color:var(--primary);"></span> ກຳລັງໂຫລດຂໍ້ມູນ...</div>';
@@ -996,6 +1007,12 @@ function renderContactList(){
       '<div class="cic"><i class="'+c.icon+'"></i></div>'+
       '<div style="flex:1;"><b>'+c.title+'</b><span>'+c.sub+'</span></div>'+copyBtn+'</a>';
   }).join('');
+ } catch (err) {
+   console.error('renderContactList error:', err);
+   document.getElementById('contactList').innerHTML =
+     '<div class="contact-empty">ຂໍ້ມູນຕັ້ງຄ່າຜິດພາດ ('+err.message+') — ກະລຸນາແຈ້ງແອັດມິນ</div>';
+   toast('ຜິດພາດ: ຂໍ້ມູນຊ່ອງທາງຕິດຕໍ່ບໍ່ຖືກຕ້ອງ');
+ }
 }
 function copyContactText(text){
   navigator.clipboard.writeText(text).then(function(){ toast('ຄັດລອກແລ້ວ: '+text); }).catch(function(){});
