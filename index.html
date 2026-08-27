@@ -671,7 +671,14 @@ function createScriptRunner_() {
       return function () {
         var args = Array.prototype.slice.call(arguments);
         gasCall(prop, args)
-          .then(function (data) { if (state.success) state.success(data); })
+          .then(function (data) {
+            if (state.success) {
+              try { state.success(data); }
+              catch (renderErr) {
+                console.error('[ໜ້າຈໍ] Error ໃນ action "'+prop+'":', renderErr);
+              }
+            }
+          })
           .catch(function (err) { if (state.failure) state.failure(err); else console.error('GAS API error:', err); });
       };
     }
@@ -721,6 +728,10 @@ function hideCfgBanner(){
 }
 
 function onStorefrontLoaded(data){
+  if (!data) {
+    showCfgBanner('ບໍ່ໄດ້ຮັບຂໍ້ມູນຈາກ Backend - ກະລຸນາກວດ Deploy Web App ໃໝ່ (ເບິ່ງ Console F12)');
+    return;
+  }
   STORE.settings = data.settings || {};
   STORE.services = data.services || [];
   STORE.categories = data.categories || [];
