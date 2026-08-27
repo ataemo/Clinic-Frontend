@@ -96,7 +96,12 @@ button{font-family:inherit;}
 .banner-wrap{position:relative;margin:14px 16px 6px;border-radius:18px;overflow:hidden;height:210px;background:#e2e8f0;}
 .banner-slide{position:absolute;inset:0;opacity:0;transition:opacity .5s ease;background-size:cover;background-position:center;display:flex;align-items:flex-end;}
 .banner-slide.active{opacity:1;}
-.banner-slide::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.65),rgba(0,0,0,0) 65%);}
+.banner-slide::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:transparent;
+}
 .banner-text{position:relative;z-index:2;padding:16px;color:#fff;}
 .banner-badge{display:inline-block;background:var(--accent);color:#fff;font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:6px;}
 .banner-text h3{margin:0 0 3px;font-size:15.5px;}
