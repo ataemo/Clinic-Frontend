@@ -899,11 +899,20 @@ function renderCategories(){
 }
 function filterCat(cat, el){
   STORE.activeCat = cat;
-  showPage('services');
-  document.getElementById('catScroll2').querySelectorAll('.cat-item').forEach(function(c){
-    c.classList.toggle('active', c.textContent === el.textContent);
+  document.getElementById('catScroll').querySelectorAll('.cat-item').forEach(function(c){
+    c.classList.remove('active');
   });
-  renderAllServices();
+  el.classList.add('active');
+  renderFeaturedByCategory(cat);
+}
+
+function renderFeaturedByCategory(cat){
+  var list = STORE.services.filter(function(s){
+    return cat === 'all' || s.Category === cat;
+  });
+  document.getElementById('featuredGrid').innerHTML = list.length
+    ? list.map(svcCardHtml).join('')
+    : '<div class="empty-mini">ບໍ່ພົບບໍລິການໃນໝວດໝູ່ນີ້</div>';
 }
 function filterCat2(cat, el){
   STORE.activeCat = cat;
